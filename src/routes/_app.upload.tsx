@@ -15,21 +15,28 @@ export const Route = createFileRoute("/_app/upload")({
 function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
+    setError(null);
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      alert("Please upload an image or video file.");
+      setError("Please upload an image or video file.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setError("File is larger than 25 MB. Please upload a smaller sample.");
       return;
     }
     setBusy(true);
     try {
       const dataUrl = await fileToDataUrl(file);
-      // simulate processing time
-      await new Promise((r) => setTimeout(r, 900));
       const analysis = await analyzeFile(file, dataUrl);
       saveAnalysis(analysis);
       setResult(analysis);
+    } catch (e) {
+      console.error(e);
+      setError("Could not analyze that file. Try a different image or video.");
     } finally {
       setBusy(false);
     }
@@ -77,6 +84,12 @@ function UploadPage() {
           </div>
         </div>
       </label>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm px-4 py-3">
+          {error}
+        </div>
+      )}
 
       {result && (
         <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-5">
