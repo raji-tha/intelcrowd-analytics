@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { FileText, Download, Trash2 } from "lucide-react";
-import { getAnalyses, clearAnalyses } from "@/lib/store";
+import { FileText, Download, Trash2, X } from "lucide-react";
+import { useAnalyses, clearAnalyses, deleteAnalysis } from "@/lib/store";
 import { RiskBadge } from "@/components/RiskBadge";
 import { generateReportPdf } from "@/lib/pdf";
 
@@ -11,7 +10,7 @@ export const Route = createFileRoute("/_app/reports")({
 });
 
 function ReportsPage() {
-  const analyses = useMemo(() => getAnalyses(), []);
+  const analyses = useAnalyses();
 
   return (
     <div className="space-y-6">
@@ -25,10 +24,7 @@ function ReportsPage() {
         {analyses.length > 0 && (
           <button
             onClick={() => {
-              if (confirm("Clear all analyses? This cannot be undone.")) {
-                clearAnalyses();
-                location.reload();
-              }
+              if (confirm("Clear all analyses? This cannot be undone.")) clearAnalyses();
             }}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input text-sm hover:bg-accent"
           >
@@ -45,7 +41,7 @@ function ReportsPage() {
         ) : (
           <div className="divide-y divide-border">
             {analyses.map((a) => (
-              <div key={a.id} className="p-4 flex items-center gap-4">
+              <div key={a.id} className="p-4 flex items-center gap-4 flex-wrap">
                 <div className="size-12 rounded-md bg-muted overflow-hidden shrink-0">
                   {a.fileType === "image" ? (
                     <img src={a.imageDataUrl} alt="" className="w-full h-full object-cover" />
@@ -58,7 +54,9 @@ function ReportsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{a.fileName}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(a.createdAt).toLocaleString()} · {a.peopleCount} people · density {a.density}
+                    {new Date(a.createdAt).toLocaleString()} · {a.peopleCount} people · density{" "}
+                    {a.density}
+                    {a.confidence != null && <> · confidence {a.confidence}%</>}
                   </div>
                 </div>
                 <RiskBadge level={a.risk} />
@@ -67,6 +65,13 @@ function ReportsPage() {
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
                 >
                   <Download className="size-4" /> PDF
+                </button>
+                <button
+                  onClick={() => deleteAnalysis(a.id)}
+                  aria-label="Delete report"
+                  className="inline-flex items-center justify-center size-9 rounded-md border border-input text-muted-foreground hover:text-destructive hover:bg-accent"
+                >
+                  <X className="size-4" />
                 </button>
               </div>
             ))}

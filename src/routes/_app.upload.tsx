@@ -15,21 +15,28 @@ export const Route = createFileRoute("/_app/upload")({
 function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
+    setError(null);
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      alert("Please upload an image or video file.");
+      setError("Please upload an image or video file.");
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setError("File is larger than 25 MB. Please upload a smaller sample.");
       return;
     }
     setBusy(true);
     try {
       const dataUrl = await fileToDataUrl(file);
-      // simulate processing time
-      await new Promise((r) => setTimeout(r, 900));
-      const analysis = analyzeFile(file, dataUrl);
+      const analysis = await analyzeFile(file, dataUrl);
       saveAnalysis(analysis);
       setResult(analysis);
+    } catch (e) {
+      console.error(e);
+      setError("Could not analyze that file. Try a different image or video.");
     } finally {
       setBusy(false);
     }
@@ -78,6 +85,12 @@ function UploadPage() {
         </div>
       </label>
 
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm px-4 py-3">
+          {error}
+        </div>
+      )}
+
       {result && (
         <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -119,6 +132,24 @@ function UploadPage() {
               </div>
             ))}
           </div>
+
+          {(result.model || result.confidence != null || result.features) && (
+            <div className="rounded-lg border border-border p-4 bg-background/60 text-xs text-muted-foreground grid gap-1">
+              {result.model && (
+                <div>
+                  <span className="font-medium text-foreground">Model:</span> {result.model}
+                  {result.confidence != null && <> · confidence {result.confidence}%</>}
+                </div>
+              )}
+              {result.features && (
+                <div>
+                  <span className="font-medium text-foreground">Features:</span>{" "}
+                  edge {result.features.edge} · entropy {result.features.entropy} · midtone{" "}
+                  {result.features.midtone} · brightness {result.features.brightness}
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <div className="font-semibold mb-2 text-sm">Recommendations</div>

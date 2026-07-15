@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { Users, Activity, Gauge, TrendingUp } from "lucide-react";
-import { getAnalyses } from "@/lib/store";
+import { useAnalyses } from "@/lib/store";
 
 export const Route = createFileRoute("/_app/analytics")({
   head: () => ({ meta: [{ title: "Analytics — CrowdVision AI" }] }),
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/analytics")({
 });
 
 function AnalyticsPage() {
-  const analyses = useMemo(() => getAnalyses(), []);
+  const analyses = useAnalyses();
 
   const byDay = useMemo(() => {
     const map = new Map<string, { day: string; count: number; risk: number; n: number }>();
