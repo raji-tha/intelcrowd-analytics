@@ -129,7 +129,25 @@ function UploadPage() {
               <div key={s.k} className="rounded-lg border border-border p-3 bg-background">
                 <div className="text-xs text-muted-foreground">{s.k}</div>
                 <div className="font-semibold text-sm mt-1">{s.v}</div>
-              </div>
+          </div>
+
+          {(result.model || result.confidence != null || result.features) && (
+            <div className="rounded-lg border border-border p-4 bg-background/60 text-xs text-muted-foreground grid gap-1">
+              {result.model && (
+                <div>
+                  <span className="font-medium text-foreground">Model:</span> {result.model}
+                  {result.confidence != null && <> · confidence {result.confidence}%</>}
+                </div>
+              )}
+              {result.features && (
+                <div>
+                  <span className="font-medium text-foreground">Features:</span>{" "}
+                  edge {result.features.edge} · entropy {result.features.entropy} · midtone{" "}
+                  {result.features.midtone} · brightness {result.features.brightness}
+                </div>
+              )}
+            </div>
+          )}
             ))}
           </div>
 
