@@ -73,7 +73,7 @@ export function setUser(u: User | null) {
 }
 export function useUser() {
   const [u, setU] = useState<User | null>(() => getUser());
-  useEffect(() => subscribe("user", () => setU(getUser())), []);
+  useEffect(() => { const un = subscribe("user", () => setU(getUser())); return () => { un(); }; }, []);
   return u;
 }
 
@@ -103,7 +103,7 @@ export function clearAnalyses() {
 }
 export function useAnalyses() {
   const [a, setA] = useState<Analysis[]>(() => getAnalyses());
-  useEffect(() => subscribe("analyses", () => setA(getAnalyses())), []);
+  useEffect(() => { const un = subscribe("analyses", () => setA(getAnalyses())); return () => { un(); }; }, []);
   return a;
 }
 

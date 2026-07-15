@@ -27,7 +27,7 @@ function UploadPage() {
       const dataUrl = await fileToDataUrl(file);
       // simulate processing time
       await new Promise((r) => setTimeout(r, 900));
-      const analysis = analyzeFile(file, dataUrl);
+      const analysis = await analyzeFile(file, dataUrl);
       saveAnalysis(analysis);
       setResult(analysis);
     } finally {

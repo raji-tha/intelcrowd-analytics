@@ -235,7 +235,7 @@ export async function analyzeFile(
   // Zone-wise heatmap using per-tile features
   const zoneW = Math.floor(W / GRID);
   const zoneH = Math.floor(H / GRID);
-  const zones = [];
+  const zones: Analysis["zones"] = [];
   let zoneSum = 0;
   const zoneScores: number[] = [];
   for (let zy = 0; zy < GRID; zy++) {
