@@ -129,6 +129,8 @@ function UploadPage() {
               <div key={s.k} className="rounded-lg border border-border p-3 bg-background">
                 <div className="text-xs text-muted-foreground">{s.k}</div>
                 <div className="font-semibold text-sm mt-1">{s.v}</div>
+              </div>
+            ))}
           </div>
 
           {(result.model || result.confidence != null || result.features) && (
@@ -148,8 +150,6 @@ function UploadPage() {
               )}
             </div>
           )}
-            ))}
-          </div>
 
           <div>
             <div className="font-semibold mb-2 text-sm">Recommendations</div>
