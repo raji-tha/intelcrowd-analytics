@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useAnalyses } from "@/lib/store";
 import { Users, AlertTriangle, Upload as UploadIcon, TrendingUp } from "lucide-react";
 import {
   LineChart,
@@ -15,7 +16,7 @@ import {
 import { StatCard } from "@/components/StatCard";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Heatmap } from "@/components/Heatmap";
-import { getAnalyses } from "@/lib/store";
+
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — CrowdVision AI" }] }),
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 });
 
 function Dashboard() {
-  const analyses = useMemo(() => getAnalyses(), []);
+  const analyses = useAnalyses();
   const latest = analyses[0];
   const today = analyses.filter(
     (a) => new Date(a.createdAt).toDateString() === new Date().toDateString(),
