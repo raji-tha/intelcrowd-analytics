@@ -1,6 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Upload, BarChart3, FileText, Settings, LogOut, ShieldCheck } from "lucide-react";
-import { setUser, getUser } from "@/lib/store";
+import { setUser, useUser } from "@/lib/store";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -14,12 +14,14 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const user = getUser();
+  const user = useUser();
 
   const logout = () => {
     setUser(null);
     router.navigate({ to: "/login" });
   };
+
+  const isActive = (to: string) => pathname === to || pathname.startsWith(to + "/");
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -35,14 +37,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((n) => {
-            const active = pathname === n.to || pathname.startsWith(n.to + "/");
             const Icon = n.icon;
             return (
               <Link
                 key={n.to}
                 to={n.to}
                 className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  active
+                  isActive(n.to)
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 }`}
@@ -67,21 +68,50 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0">
-        <header className="h-16 px-4 md:px-8 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur">
+      <main className="flex-1 min-w-0 pb-20 md:pb-0">
+        <header className="h-16 px-4 md:px-8 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur sticky top-0 z-20">
           <div className="flex items-center gap-2 md:hidden">
             <ShieldCheck className="size-5 text-primary" />
             <span className="font-semibold">CrowdVision AI</span>
           </div>
           <div className="text-sm text-muted-foreground hidden md:block">
-            {nav.find((n) => pathname === n.to || pathname.startsWith(n.to + "/"))?.label ?? "Overview"}
+            {nav.find((n) => isActive(n.to))?.label ?? "Overview"}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-muted-foreground hidden sm:block">
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+            </div>
+            <button
+              onClick={logout}
+              aria-label="Logout"
+              className="md:hidden inline-flex items-center justify-center size-9 rounded-md border border-input text-muted-foreground hover:bg-accent"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </header>
         <div className="p-4 md:p-8">{children}</div>
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur flex justify-around">
+        {nav.map((n) => {
+          const Icon = n.icon;
+          const active = isActive(n.to);
+          return (
+            <Link
+              key={n.to}
+              to={n.to}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] ${
+                active ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="size-5" />
+              {n.label}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
