@@ -200,30 +200,14 @@ function recommendationsFor(risk: RiskLevel): string[] {
 
 // -------------------- main analyzer --------------------
 
-export async function analyzeFile(
-  file: File,
-  dataUrl: string,
+export async function analyzeCanvas(
+  source: HTMLCanvasElement,
+  meta: { fileName: string; fileType: "image" | "video"; dataUrl?: string },
 ): Promise<Analysis> {
-  const isVideo = file.type.startsWith("video/");
-
-  // Draw source into a canvas we can sample.
-  let source: HTMLCanvasElement;
-  if (isVideo) {
-    source = await loadVideoFrame(dataUrl);
-  } else {
-    const img = await loadImage(dataUrl);
-    const maxSide = 480;
-    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-    source = document.createElement("canvas");
-    source.width = Math.max(1, Math.round(img.width * scale));
-    source.height = Math.max(1, Math.round(img.height * scale));
-    source.getContext("2d")!.drawImage(img, 0, 0, source.width, source.height);
-  }
-
   const ctx = source.getContext("2d")!;
   const { width: W, height: H } = source;
+  const dataUrl = meta.dataUrl ?? source.toDataURL("image/jpeg", 0.85);
 
-  // Global features + score
   const global = extractFeatures(ctx.getImageData(0, 0, W, H).data, W, H);
   const { score, confidence } = ensembleScore(global);
   const risk = classifyScore(score);
@@ -232,7 +216,6 @@ export async function analyzeFile(
   const densityLevel: RiskLevel =
     density < 1.2 ? "Low" : density < 3 ? "Medium" : "High";
 
-  // Zone-wise heatmap using per-tile features
   const zoneW = Math.floor(W / GRID);
   const zoneH = Math.floor(H / GRID);
   const zones: Analysis["zones"] = [];
@@ -257,23 +240,18 @@ export async function analyzeFile(
       level: classifyScore(s) as RiskLevel,
     });
   });
-
-  // Reconcile zone totals with global count
   const total = zones.reduce((s, z) => s + z.count, 0) || 1;
   const factor = peopleCount / total;
   for (const z of zones) z.count = Math.round(z.count * factor);
 
-  // Predictive component: short-horizon trend based on density gradient
-  const growth = 0.9 + score * 0.7; // higher risk → faster escalation
+  const growth = 0.9 + score * 0.7;
   const expectedCount = Math.round(peopleCount * growth);
-  const expectedRisk = classifyScore(
-    Math.min(1, score * growth * 0.95),
-  );
+  const expectedRisk = classifyScore(Math.min(1, score * growth * 0.95));
 
   return {
     id: crypto.randomUUID(),
-    fileName: file.name,
-    fileType: isVideo ? "video" : "image",
+    fileName: meta.fileName,
+    fileType: meta.fileType,
     imageDataUrl: dataUrl,
     peopleCount,
     density,
@@ -284,7 +262,6 @@ export async function analyzeFile(
     prediction: { horizonMin: 15, expectedCount, expectedRisk },
     recommendations: recommendationsFor(risk),
     createdAt: new Date().toISOString(),
-    // extended metadata (rendered where useful)
     confidence: +(confidence * 100).toFixed(1),
     features: {
       edge: +global.edge.toFixed(3),
@@ -294,4 +271,28 @@ export async function analyzeFile(
     },
     model: "Ensemble (RF + XGBoost + Decision Tree)",
   };
+}
+
+export async function analyzeFile(
+  file: File,
+  dataUrl: string,
+): Promise<Analysis> {
+  const isVideo = file.type.startsWith("video/");
+  let source: HTMLCanvasElement;
+  if (isVideo) {
+    source = await loadVideoFrame(dataUrl);
+  } else {
+    const img = await loadImage(dataUrl);
+    const maxSide = 480;
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    source = document.createElement("canvas");
+    source.width = Math.max(1, Math.round(img.width * scale));
+    source.height = Math.max(1, Math.round(img.height * scale));
+    source.getContext("2d")!.drawImage(img, 0, 0, source.width, source.height);
+  }
+  return analyzeCanvas(source, {
+    fileName: file.name,
+    fileType: isVideo ? "video" : "image",
+    dataUrl,
+  });
 }
