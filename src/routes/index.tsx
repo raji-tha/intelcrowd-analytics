@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck, Activity, Brain, TrendingUp } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -7,8 +7,8 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="max-w-6xl mx-auto w-full px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div
             className="size-9 rounded-lg grid place-items-center text-primary-foreground"
@@ -26,12 +26,8 @@ function Landing() {
         </Link>
       </header>
 
-      <section className="max-w-4xl mx-auto px-6 pt-16 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-primary" />
-          IEEE-oriented research project · AI + CV + Predictive Analytics
-        </div>
-        <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight">
+      <section className="flex-1 max-w-3xl mx-auto px-6 flex flex-col items-center justify-center text-center">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
           Intelligent crowd risk prediction &{" "}
           <span
             className="bg-clip-text text-transparent"
@@ -40,45 +36,20 @@ function Landing() {
             decision support
           </span>
         </h1>
-        <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Upload an image or video. CrowdVision detects people, maps density, predicts what
-          happens next, and tells authorities what to do — before it becomes an incident.
+        <p className="mt-6 text-lg text-muted-foreground max-w-xl">
+          Upload crowd images or videos to detect people, map density, and get
+          actionable risk recommendations.
         </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Link
-            to="/login"
-            className="px-5 py-2.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Launch dashboard
-          </Link>
-          <a
-            href="#modules"
-            className="px-5 py-2.5 rounded-md text-sm font-medium border border-input hover:bg-accent"
-          >
-            See modules
-          </a>
-        </div>
-      </section>
-
-      <section id="modules" className="max-w-6xl mx-auto px-6 pb-24 grid md:grid-cols-4 gap-4">
-        {[
-          { icon: Activity, title: "Detect", body: "Person detection via CV pipeline (YOLOv8 in reference impl.)." },
-          { icon: TrendingUp, title: "Density", body: "Zone-wise density mapping with heatmap visualization." },
-          { icon: Brain, title: "Predict", body: "ML forecasts future crowd count and risk level." },
-          { icon: ShieldCheck, title: "Decide", body: "Automated recommendations tailored to risk severity." },
-        ].map((f) => (
-          <div key={f.title} className="rounded-xl border border-border bg-card p-5">
-            <div className="size-10 rounded-lg grid place-items-center bg-primary/10 text-primary">
-              <f.icon className="size-5" />
-            </div>
-            <div className="mt-4 font-semibold">{f.title}</div>
-            <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-          </div>
-        ))}
+        <Link
+          to="/login"
+          className="mt-8 px-6 py-3 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          Launch dashboard
+        </Link>
       </section>
 
       <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        CrowdVision AI · Final-year major project scaffold
+        CrowdVision AI · Final-year major project
       </footer>
     </div>
   );
