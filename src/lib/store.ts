@@ -24,6 +24,19 @@ export interface Analysis {
   confidence?: number;
   features?: { edge: number; entropy: number; midtone: number; brightness: number };
   model?: string;
+  // Explainability breakdown (Phase 2).
+  explain?: {
+    subModels: { rf: number; xgb: number; dt: number };
+    contributions: Record<string, number>;
+    features: {
+      edge: number;
+      entropy: number;
+      midtone: number;
+      brightness: number;
+      variance: number;
+      contrast: number;
+    };
+  };
   // Real AI vision verification (Phase 1).
   verified?: boolean;
   aiCount?: number;
