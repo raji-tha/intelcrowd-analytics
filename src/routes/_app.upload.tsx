@@ -11,12 +11,17 @@ import {
   Clipboard,
   Image as ImageIcon,
   Video as VideoIcon,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { analyzeCanvas, analyzeFile, fileToDataUrl } from "@/lib/analyze";
-import { saveAnalysis, type Analysis } from "@/lib/store";
+import { saveAnalysis, updateAnalysis, type Analysis } from "@/lib/store";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Heatmap } from "@/components/Heatmap";
 import { generateReportPdf } from "@/lib/pdf";
+import { useServerFn } from "@tanstack/react-start";
+import { analyzeWithVision } from "@/lib/vision.functions";
 
 export const Route = createFileRoute("/_app/upload")({
   head: () => ({ meta: [{ title: "Upload — CrowdVision AI" }] }),
