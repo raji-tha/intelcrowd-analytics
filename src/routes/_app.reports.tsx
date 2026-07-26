@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Download, Trash2, X } from "lucide-react";
+import { FileText, Download, Trash2, X, FileSpreadsheet } from "lucide-react";
 import { useAnalyses, clearAnalyses, deleteAnalysis } from "@/lib/store";
 import { RiskBadge } from "@/components/RiskBadge";
 import { generateReportPdf } from "@/lib/pdf";
+import { downloadAnalysesCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Reports — CrowdVision AI" }] }),
