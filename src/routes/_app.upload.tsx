@@ -472,6 +472,69 @@ function UploadPage() {
             </ul>
           </div>
 
+          {/* AI vision verification */}
+          <div className="rounded-lg border border-border p-4 bg-background/60 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="size-4 text-primary" /> AI vision verification
+              </div>
+              <button
+                onClick={() => runVerify(result)}
+                disabled={verifying}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input text-sm font-medium hover:bg-accent disabled:opacity-60"
+              >
+                {verifying ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="size-4" />
+                )}
+                {result.verified ? "Re-verify" : "Verify count with AI"}
+              </button>
+            </div>
+            {verifyError && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="size-4 shrink-0" /> {verifyError}
+              </div>
+            )}
+            {result.verified ? (
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-md border border-border p-3 bg-background">
+                  <div className="text-xs text-muted-foreground">AI people count</div>
+                  <div className="text-lg font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="size-4 text-success" /> {result.aiCount}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      · confidence {result.aiConfidence}%
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-md border border-border p-3 bg-background">
+                  <div className="text-xs text-muted-foreground">Scene description</div>
+                  <div className="text-sm mt-1">{result.aiDescription}</div>
+                </div>
+                <div className="rounded-md border border-border p-3 bg-background sm:col-span-2">
+                  <div className="text-xs text-muted-foreground mb-1">Heuristic vs AI vision</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Heuristic estimate</div>
+                      <div className="font-semibold">{result.peopleCount} people · {result.risk} risk</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">AI-verified</div>
+                      <div className="font-semibold">
+                        {result.aiCount} people · {result.aiDensity ?? "—"} density
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                The in-browser heuristic gives an instant estimate. Run AI vision for an
+                authoritative people count and scene description.
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => generateReportPdf(result)}
