@@ -164,7 +164,7 @@ function extractFeatures(
  * activity office / street scenes stay in the Low band while dense
  * festival footage lands in High.
  */
-function ensembleScore(f: Features): { score: number; confidence: number } {
+function ensembleScore(f: Features): EnsembleBreakdown {
   // Random Forest analogue — favors edge & texture busyness
   const rf =
     0.42 * f.edge + 0.22 * f.entropy + 0.18 * f.midtone + 0.18 * f.contrast;
@@ -190,7 +190,30 @@ function ensembleScore(f: Features): { score: number; confidence: number } {
     ((rf - mean) ** 2 + (xgb - mean) ** 2 + (dt - mean) ** 2) / 3;
   const confidence = Math.max(0.6, Math.min(0.99, 1 - variance * 2.2));
 
-  return { score: Math.max(0, Math.min(1, score)), confidence };
+  // Per-feature contributions to the linear ensemble raw score.
+  // Only RF and XGB are linear; DT is a threshold rule handled separately.
+  // contribution_feat = sum over linear models of (model_weight * coeff * value)
+  const rfCoeffs: Record<keyof Features, number> = {
+    edge: 0.42, entropy: 0.22, midtone: 0.18, contrast: 0.18,
+    brightness: 0, variance: 0,
+  };
+  const xgbCoeffs: Record<keyof Features, number> = {
+    edge: 0.38, entropy: 0.24, midtone: 0.14, contrast: 0.14,
+    variance: 0.08,
+    brightness: 0.02 * (1 - Math.abs(f.brightness - 0.5) * 2),
+  };
+  const contributions = {} as Record<keyof Features, number>;
+  (Object.keys(rfCoeffs) as (keyof Features)[]).forEach((k) => {
+    contributions[k] =
+      weights.rf * rfCoeffs[k] * f[k] + weights.xgb * xgbCoeffs[k] * f[k];
+  });
+
+  return {
+    score: Math.max(0, Math.min(1, score)),
+    confidence,
+    subModels: { rf, xgb, dt },
+    contributions,
+  };
 }
 
 function classifyScore(score: number): RiskLevel {
