@@ -265,7 +265,7 @@ export async function analyzeCanvas(
   const dataUrl = meta.dataUrl ?? source.toDataURL("image/jpeg", 0.85);
 
   const global = extractFeatures(ctx.getImageData(0, 0, W, H).data, W, H);
-  const { score, confidence } = ensembleScore(global);
+  const { score, confidence, subModels, contributions } = ensembleScore(global);
   const risk = classifyScore(score);
   const peopleCount = estimatePeople(score, W * H);
   const density = +(peopleCount / ((W * H) / 10000)).toFixed(2);
