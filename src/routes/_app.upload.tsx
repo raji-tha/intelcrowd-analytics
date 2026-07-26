@@ -38,6 +38,45 @@ function UploadPage() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [batch, setBatch] = useState<Analysis[]>([]);
 
+  // AI vision verification
+  const verify = useServerFn(analyzeWithVision);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
+  const runVerify = useCallback(
+    async (a: Analysis) => {
+      setVerifying(true);
+      setVerifyError(null);
+      try {
+        const res = await verify({ data: { image: a.imageDataUrl } });
+        if (res.ok) {
+          const aiDensity =
+            res.result.density === "low"
+              ? "Low"
+              : res.result.density === "medium"
+                ? "Medium"
+                : "High";
+          const patch = {
+            verified: true,
+            aiCount: res.result.peopleCount,
+            aiDescription: res.result.sceneDescription,
+            aiConfidence: Math.round(res.result.confidence * 100),
+            aiDensity: aiDensity as Analysis["aiDensity"],
+          };
+          updateAnalysis(a.id, patch);
+          setResult((cur) => (cur ? { ...cur, ...patch } : cur));
+        } else {
+          setVerifyError(res.error);
+        }
+      } catch {
+        setVerifyError("Could not run AI vision analysis.");
+      } finally {
+        setVerifying(false);
+      }
+    },
+    [verify],
+  );
+
   // Live capture state
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
