@@ -17,6 +17,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppExplainRouteImport } from './routes/_app.explain'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCompareRouteImport } from './routes/_app.compare'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 
 const LoginRoute = LoginRouteImport.update({
@@ -58,6 +59,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCompareRoute = AppCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/compare': typeof AppCompareRoute
   '/dashboard': typeof AppDashboardRoute
   '/explain': typeof AppExplainRoute
   '/reports': typeof AppReportsRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/compare': typeof AppCompareRoute
   '/dashboard': typeof AppDashboardRoute
   '/explain': typeof AppExplainRoute
   '/reports': typeof AppReportsRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/compare': typeof AppCompareRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/explain': typeof AppExplainRoute
   '/_app/reports': typeof AppReportsRoute
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/compare'
     | '/dashboard'
     | '/explain'
     | '/reports'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/compare'
     | '/dashboard'
     | '/explain'
     | '/reports'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/analytics'
+    | '/_app/compare'
     | '/_app/dashboard'
     | '/_app/explain'
     | '/_app/reports'
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/compare': {
+      id: '/_app/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof AppCompareRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/analytics': {
       id: '/_app/analytics'
       path: '/analytics'
@@ -206,6 +225,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppCompareRoute: typeof AppCompareRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExplainRoute: typeof AppExplainRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -215,6 +235,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppCompareRoute: AppCompareRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExplainRoute: AppExplainRoute,
   AppReportsRoute: AppReportsRoute,
