@@ -81,6 +81,16 @@ interface Features {
   contrast: number; // 0..1  local RMS contrast
 }
 
+export type ExplainFeatures = Features;
+
+export interface EnsembleBreakdown {
+  score: number;
+  confidence: number;
+  subModels: { rf: number; xgb: number; dt: number };
+  // SHAP-like contribution of each feature to the (linear) ensemble raw score.
+  contributions: Record<keyof Features, number>;
+}
+
 function extractFeatures(
   data: Uint8ClampedArray,
   w: number,
@@ -154,7 +164,7 @@ function extractFeatures(
  * activity office / street scenes stay in the Low band while dense
  * festival footage lands in High.
  */
-function ensembleScore(f: Features): { score: number; confidence: number } {
+function ensembleScore(f: Features): EnsembleBreakdown {
   // Random Forest analogue — favors edge & texture busyness
   const rf =
     0.42 * f.edge + 0.22 * f.entropy + 0.18 * f.midtone + 0.18 * f.contrast;
@@ -180,7 +190,30 @@ function ensembleScore(f: Features): { score: number; confidence: number } {
     ((rf - mean) ** 2 + (xgb - mean) ** 2 + (dt - mean) ** 2) / 3;
   const confidence = Math.max(0.6, Math.min(0.99, 1 - variance * 2.2));
 
-  return { score: Math.max(0, Math.min(1, score)), confidence };
+  // Per-feature contributions to the linear ensemble raw score.
+  // Only RF and XGB are linear; DT is a threshold rule handled separately.
+  // contribution_feat = sum over linear models of (model_weight * coeff * value)
+  const rfCoeffs: Record<keyof Features, number> = {
+    edge: 0.42, entropy: 0.22, midtone: 0.18, contrast: 0.18,
+    brightness: 0, variance: 0,
+  };
+  const xgbCoeffs: Record<keyof Features, number> = {
+    edge: 0.38, entropy: 0.24, midtone: 0.14, contrast: 0.14,
+    variance: 0.08,
+    brightness: 0.02 * (1 - Math.abs(f.brightness - 0.5) * 2),
+  };
+  const contributions = {} as Record<keyof Features, number>;
+  (Object.keys(rfCoeffs) as (keyof Features)[]).forEach((k) => {
+    contributions[k] =
+      weights.rf * rfCoeffs[k] * f[k] + weights.xgb * xgbCoeffs[k] * f[k];
+  });
+
+  return {
+    score: Math.max(0, Math.min(1, score)),
+    confidence,
+    subModels: { rf, xgb, dt },
+    contributions,
+  };
 }
 
 function classifyScore(score: number): RiskLevel {
@@ -232,7 +265,7 @@ export async function analyzeCanvas(
   const dataUrl = meta.dataUrl ?? source.toDataURL("image/jpeg", 0.85);
 
   const global = extractFeatures(ctx.getImageData(0, 0, W, H).data, W, H);
-  const { score, confidence } = ensembleScore(global);
+  const { score, confidence, subModels, contributions } = ensembleScore(global);
   const risk = classifyScore(score);
   const peopleCount = estimatePeople(score, W * H);
   const density = +(peopleCount / ((W * H) / 10000)).toFixed(2);
@@ -293,6 +326,11 @@ export async function analyzeCanvas(
       brightness: +global.brightness.toFixed(3),
     },
     model: "Ensemble (RF + XGBoost + Decision Tree)",
+    explain: {
+      subModels,
+      contributions,
+      features: global,
+    },
   };
 }
 

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileText, Download, Trash2, X } from "lucide-react";
+import { FileText, Download, Trash2, X, FileSpreadsheet } from "lucide-react";
 import { useAnalyses, clearAnalyses, deleteAnalysis } from "@/lib/store";
 import { RiskBadge } from "@/components/RiskBadge";
 import { generateReportPdf } from "@/lib/pdf";
+import { downloadAnalysesCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Reports — CrowdVision AI" }] }),
@@ -22,14 +23,22 @@ function ReportsPage() {
           </p>
         </div>
         {analyses.length > 0 && (
-          <button
-            onClick={() => {
-              if (confirm("Clear all analyses? This cannot be undone.")) clearAnalyses();
-            }}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input text-sm hover:bg-accent"
-          >
-            <Trash2 className="size-4" /> Clear all
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => downloadAnalysesCsv(analyses)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input text-sm hover:bg-accent"
+            >
+              <FileSpreadsheet className="size-4" /> Export CSV
+            </button>
+            <button
+              onClick={() => {
+                if (confirm("Clear all analyses? This cannot be undone.")) clearAnalyses();
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-input text-sm hover:bg-accent"
+            >
+              <Trash2 className="size-4" /> Clear all
+            </button>
+          </div>
         )}
       </div>
 

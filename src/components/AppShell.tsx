@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Upload, BarChart3, FileText, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Upload, BarChart3, FileText, Settings, LogOut, ShieldCheck, BrainCircuit, GitCompareArrows, Radio, Map } from "lucide-react";
 import { setUser, useUser } from "@/lib/store";
 import type { ReactNode } from "react";
 
@@ -7,6 +7,10 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/upload", label: "Upload", icon: Upload },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/explain", label: "Explain", icon: BrainCircuit },
+  { to: "/compare", label: "Compare", icon: GitCompareArrows },
+  { to: "/monitor", label: "Monitor", icon: Radio },
+  { to: "/map", label: "Map", icon: Map },
   { to: "/reports", label: "Reports", icon: FileText },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
