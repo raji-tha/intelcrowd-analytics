@@ -15,6 +15,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUploadRouteImport } from './routes/_app.upload'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppMonitorRouteImport } from './routes/_app.monitor'
+import { Route as AppMapRouteImport } from './routes/_app.map'
 import { Route as AppExplainRouteImport } from './routes/_app.explain'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCompareRouteImport } from './routes/_app.compare'
@@ -49,6 +51,16 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMonitorRoute = AppMonitorRouteImport.update({
+  id: '/monitor',
+  path: '/monitor',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMapRoute = AppMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExplainRoute = AppExplainRouteImport.update({
   id: '/explain',
   path: '/explain',
@@ -77,6 +89,8 @@ export interface FileRoutesByFullPath {
   '/compare': typeof AppCompareRoute
   '/dashboard': typeof AppDashboardRoute
   '/explain': typeof AppExplainRoute
+  '/map': typeof AppMapRoute
+  '/monitor': typeof AppMonitorRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/upload': typeof AppUploadRoute
@@ -88,6 +102,8 @@ export interface FileRoutesByTo {
   '/compare': typeof AppCompareRoute
   '/dashboard': typeof AppDashboardRoute
   '/explain': typeof AppExplainRoute
+  '/map': typeof AppMapRoute
+  '/monitor': typeof AppMonitorRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/upload': typeof AppUploadRoute
@@ -101,6 +117,8 @@ export interface FileRoutesById {
   '/_app/compare': typeof AppCompareRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/explain': typeof AppExplainRoute
+  '/_app/map': typeof AppMapRoute
+  '/_app/monitor': typeof AppMonitorRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/upload': typeof AppUploadRoute
@@ -114,6 +132,8 @@ export interface FileRouteTypes {
     | '/compare'
     | '/dashboard'
     | '/explain'
+    | '/map'
+    | '/monitor'
     | '/reports'
     | '/settings'
     | '/upload'
@@ -125,6 +145,8 @@ export interface FileRouteTypes {
     | '/compare'
     | '/dashboard'
     | '/explain'
+    | '/map'
+    | '/monitor'
     | '/reports'
     | '/settings'
     | '/upload'
@@ -137,6 +159,8 @@ export interface FileRouteTypes {
     | '/_app/compare'
     | '/_app/dashboard'
     | '/_app/explain'
+    | '/_app/map'
+    | '/_app/monitor'
     | '/_app/reports'
     | '/_app/settings'
     | '/_app/upload'
@@ -192,6 +216,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/monitor': {
+      id: '/_app/monitor'
+      path: '/monitor'
+      fullPath: '/monitor'
+      preLoaderRoute: typeof AppMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/map': {
+      id: '/_app/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof AppMapRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/explain': {
       id: '/_app/explain'
       path: '/explain'
@@ -228,6 +266,8 @@ interface AppRouteChildren {
   AppCompareRoute: typeof AppCompareRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExplainRoute: typeof AppExplainRoute
+  AppMapRoute: typeof AppMapRoute
+  AppMonitorRoute: typeof AppMonitorRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppUploadRoute: typeof AppUploadRoute
@@ -238,6 +278,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppCompareRoute: AppCompareRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExplainRoute: AppExplainRoute,
+  AppMapRoute: AppMapRoute,
+  AppMonitorRoute: AppMonitorRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppUploadRoute: AppUploadRoute,
