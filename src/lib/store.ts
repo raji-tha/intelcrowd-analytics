@@ -102,6 +102,15 @@ export function deleteAnalysis(id: string) {
   localStorage.setItem(KEYS.analyses, JSON.stringify(all));
   emit("analyses");
 }
+export function updateAnalysis(id: string, patch: Partial<Analysis>) {
+  if (!isBrowser) return;
+  const all = getAnalyses();
+  const idx = all.findIndex((a) => a.id === id);
+  if (idx === -1) return;
+  all[idx] = { ...all[idx], ...patch };
+  localStorage.setItem(KEYS.analyses, JSON.stringify(all));
+  emit("analyses");
+}
 export function clearAnalyses() {
   if (!isBrowser) return;
   localStorage.removeItem(KEYS.analyses);
