@@ -24,6 +24,12 @@ export interface Analysis {
   confidence?: number;
   features?: { edge: number; entropy: number; midtone: number; brightness: number };
   model?: string;
+  // Real AI vision verification (Phase 1).
+  verified?: boolean;
+  aiCount?: number;
+  aiDescription?: string;
+  aiConfidence?: number;
+  aiDensity?: RiskLevel;
 }
 
 export interface User {
