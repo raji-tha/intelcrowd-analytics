@@ -326,6 +326,11 @@ export async function analyzeCanvas(
       brightness: +global.brightness.toFixed(3),
     },
     model: "Ensemble (RF + XGBoost + Decision Tree)",
+    explain: {
+      subModels,
+      contributions,
+      features: global,
+    },
   };
 }
 
