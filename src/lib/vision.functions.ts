@@ -58,7 +58,8 @@ export const analyzeWithVision = createServerFn({ method: "POST" })
             role: "user",
             content: [
               { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: data.image } },
+              // AI SDK image part: accepts a URL (incl. data: URL), base64, or bytes.
+              { type: "image", image: data.image },
             ],
           },
         ],
