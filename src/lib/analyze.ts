@@ -81,6 +81,16 @@ interface Features {
   contrast: number; // 0..1  local RMS contrast
 }
 
+export type ExplainFeatures = Features;
+
+export interface EnsembleBreakdown {
+  score: number;
+  confidence: number;
+  subModels: { rf: number; xgb: number; dt: number };
+  // SHAP-like contribution of each feature to the (linear) ensemble raw score.
+  contributions: Record<keyof Features, number>;
+}
+
 function extractFeatures(
   data: Uint8ClampedArray,
   w: number,
