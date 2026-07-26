@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUploadRouteImport } from './routes/_app.upload'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppExplainRouteImport } from './routes/_app.explain'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAnalyticsRouteImport } from './routes/_app.analytics'
 
@@ -47,6 +48,11 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppExplainRoute = AppExplainRouteImport.update({
+  id: '/explain',
+  path: '/explain',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/explain': typeof AppExplainRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/upload': typeof AppUploadRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/explain': typeof AppExplainRoute
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/upload': typeof AppUploadRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/explain': typeof AppExplainRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/upload': typeof AppUploadRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analytics'
     | '/dashboard'
+    | '/explain'
     | '/reports'
     | '/settings'
     | '/upload'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/analytics'
     | '/dashboard'
+    | '/explain'
     | '/reports'
     | '/settings'
     | '/upload'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/analytics'
     | '/_app/dashboard'
+    | '/_app/explain'
     | '/_app/reports'
     | '/_app/settings'
     | '/_app/upload'
@@ -168,6 +180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/explain': {
+      id: '/_app/explain'
+      path: '/explain'
+      fullPath: '/explain'
+      preLoaderRoute: typeof AppExplainRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -188,6 +207,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppExplainRoute: typeof AppExplainRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppUploadRoute: typeof AppUploadRoute
@@ -196,6 +216,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppExplainRoute: AppExplainRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppUploadRoute: AppUploadRoute,
