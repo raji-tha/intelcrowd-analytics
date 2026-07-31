@@ -34,9 +34,11 @@ export function generateReportPdf(a: Analysis) {
     ["Density Level", a.densityLabel],
     ["Risk Level", a.risk],
     ["Risk Score", `${a.riskScore}/100`],
-    ["Predicted count (15 min)", String(a.prediction.expectedCount)],
-    ["Predicted risk (15 min)", a.prediction.expectedRisk],
+    ["Predicted count (15 min)", String(a.prediction?.expectedCount ?? "—")],
+    ["Predicted risk (15 min)", a.prediction?.expectedRisk ?? "—"],
   ];
+  if (a.confidence != null) rows.push(["Model confidence", `${a.confidence}%`]);
+  if (a.verified) rows.push(["AI verified count", String(a.aiCount ?? "—")]);
   rows.forEach(([k, v]) => {
     doc.setTextColor(90);
     doc.text(k, 40, y);
@@ -52,7 +54,15 @@ export function generateReportPdf(a: Analysis) {
   doc.line(40, y, w - 40, y);
   y += 20;
   doc.setFontSize(11);
-  a.zones.forEach((z) => {
+  const pageH = doc.internal.pageSize.getHeight();
+  const brk = () => {
+    if (y > pageH - 60) {
+      doc.addPage();
+      y = 60;
+    }
+  };
+  (a.zones ?? []).forEach((z) => {
+    brk();
     doc.setTextColor(90);
     doc.text(`Zone ${z.id}`, 40, y);
     doc.setTextColor(20);
@@ -62,6 +72,7 @@ export function generateReportPdf(a: Analysis) {
   });
 
   y += 12;
+  brk();
   doc.setFontSize(14);
   doc.text("Recommendations", 40, y);
   y += 8;
@@ -69,7 +80,8 @@ export function generateReportPdf(a: Analysis) {
   y += 20;
   doc.setFontSize(11);
   doc.setTextColor(20);
-  a.recommendations.forEach((r, i) => {
+  (a.recommendations ?? []).forEach((r, i) => {
+    brk();
     const lines = doc.splitTextToSize(`${i + 1}. ${r}`, w - 80);
     doc.text(lines, 40, y);
     y += lines.length * 14 + 4;
