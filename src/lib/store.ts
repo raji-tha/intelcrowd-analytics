@@ -91,8 +91,13 @@ export function setUser(u: User | null) {
   emit("user");
 }
 export function useUser() {
-  const [u, setU] = useState<User | null>(() => getUser());
-  useEffect(() => { const un = subscribe("user", () => setU(getUser())); return () => { un(); }; }, []);
+  // Start null so SSR and the first client render match, then hydrate.
+  const [u, setU] = useState<User | null>(null);
+  useEffect(() => {
+    setU(getUser());
+    const un = subscribe("user", () => setU(getUser()));
+    return () => { un(); };
+  }, []);
   return u;
 }
 
@@ -130,8 +135,13 @@ export function clearAnalyses() {
   emit("analyses");
 }
 export function useAnalyses() {
-  const [a, setA] = useState<Analysis[]>(() => getAnalyses());
-  useEffect(() => { const un = subscribe("analyses", () => setA(getAnalyses())); return () => { un(); }; }, []);
+  // Start empty so SSR and the first client render match, then hydrate.
+  const [a, setA] = useState<Analysis[]>([]);
+  useEffect(() => {
+    setA(getAnalyses());
+    const un = subscribe("analyses", () => setA(getAnalyses()));
+    return () => { un(); };
+  }, []);
   return a;
 }
 

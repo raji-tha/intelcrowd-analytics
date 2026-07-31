@@ -2,6 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  head: () => {
+    const title = "CrowdVision AI — Crowd Risk Prediction & Decision Support";
+    const description =
+      "Analyze crowd images, video and live capture to predict density risk, view zone heatmaps and get actionable safety recommendations.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
   component: Landing,
 });
 
