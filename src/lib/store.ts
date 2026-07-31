@@ -91,8 +91,13 @@ export function setUser(u: User | null) {
   emit("user");
 }
 export function useUser() {
-  const [u, setU] = useState<User | null>(() => getUser());
-  useEffect(() => { const un = subscribe("user", () => setU(getUser())); return () => { un(); }; }, []);
+  // Start null so SSR and the first client render match, then hydrate.
+  const [u, setU] = useState<User | null>(null);
+  useEffect(() => {
+    setU(getUser());
+    const un = subscribe("user", () => setU(getUser()));
+    return () => { un(); };
+  }, []);
   return u;
 }
 
