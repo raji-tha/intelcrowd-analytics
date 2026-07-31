@@ -130,8 +130,13 @@ export function clearAnalyses() {
   emit("analyses");
 }
 export function useAnalyses() {
-  const [a, setA] = useState<Analysis[]>(() => getAnalyses());
-  useEffect(() => { const un = subscribe("analyses", () => setA(getAnalyses())); return () => { un(); }; }, []);
+  // Start empty so SSR and the first client render match, then hydrate.
+  const [a, setA] = useState<Analysis[]>([]);
+  useEffect(() => {
+    setA(getAnalyses());
+    const un = subscribe("analyses", () => setA(getAnalyses()));
+    return () => { un(); };
+  }, []);
   return a;
 }
 
