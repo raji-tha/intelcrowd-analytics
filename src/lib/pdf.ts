@@ -34,9 +34,11 @@ export function generateReportPdf(a: Analysis) {
     ["Density Level", a.densityLabel],
     ["Risk Level", a.risk],
     ["Risk Score", `${a.riskScore}/100`],
-    ["Predicted count (15 min)", String(a.prediction.expectedCount)],
-    ["Predicted risk (15 min)", a.prediction.expectedRisk],
+    ["Predicted count (15 min)", String(a.prediction?.expectedCount ?? "—")],
+    ["Predicted risk (15 min)", a.prediction?.expectedRisk ?? "—"],
   ];
+  if (a.confidence != null) rows.push(["Model confidence", `${a.confidence}%`]);
+  if (a.verified) rows.push(["AI verified count", String(a.aiCount ?? "—")]);
   rows.forEach(([k, v]) => {
     doc.setTextColor(90);
     doc.text(k, 40, y);
