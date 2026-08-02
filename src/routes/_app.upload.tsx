@@ -250,6 +250,126 @@ function UploadPage() {
         </p>
       </div>
 
+      {/* Scene context — operator text data used to calibrate the model */}
+      <details
+        open
+        className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+      >
+        <summary className="cursor-pointer text-sm font-semibold flex items-center gap-2">
+          <FileText className="size-4 text-primary" />
+          Scene context (text data)
+          <span className="ml-2 font-normal text-xs text-muted-foreground">
+            optional — calibrates density, Fruin LOS and risk
+          </span>
+        </summary>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Venue / location
+            <input
+              value={scene.venue}
+              onChange={(e) => updateScene({ venue: e.target.value })}
+              placeholder="e.g. North gate, Stadium A"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Event type
+            <select
+              value={scene.eventType}
+              onChange={(e) =>
+                updateScene({ eventType: e.target.value as EventType })
+              }
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            >
+              {EVENT_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Observed area (m²)
+            <input
+              type="number"
+              min={0}
+              value={scene.areaSqm ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  areaSqm: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 400"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Safe capacity (persons)
+            <input
+              type="number"
+              min={0}
+              value={scene.capacity ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  capacity: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 1200"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Exits / egress points
+            <input
+              type="number"
+              min={0}
+              value={scene.exits ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  exits: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 4"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Time of day / phase
+            <input
+              value={scene.timeOfDay}
+              onChange={(e) => updateScene({ timeOfDay: e.target.value })}
+              placeholder="e.g. 18:30 peak entry"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1 sm:col-span-2 lg:col-span-1">
+            Weather / conditions
+            <input
+              value={scene.weather}
+              onChange={(e) => updateScene({ weather: e.target.value })}
+              placeholder="e.g. hot, humid, light rain"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1 sm:col-span-2 lg:col-span-3">
+            Observations / notes
+            <textarea
+              rows={3}
+              value={scene.notes}
+              onChange={(e) => updateScene({ notes: e.target.value })}
+              placeholder="Free-text notes recorded with every analysis — bottlenecks observed, announcements made, incidents, gate status…"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground resize-y"
+            />
+          </label>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Saved automatically and attached to every analysis you run below.
+        </p>
+      </details>
+
+
+
       {/* Mode switcher */}
       <div className="inline-flex rounded-lg border border-border bg-card p-1 text-sm">
         {[
