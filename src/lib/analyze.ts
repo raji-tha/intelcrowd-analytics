@@ -252,18 +252,36 @@ function toGray(data: Uint8ClampedArray, w: number, h: number): Float32Array {
 function ensembleScore(f: Features): EnsembleBreakdown {
   // Random Forest analogue — favors edge & texture busyness
   const rf =
-    0.42 * f.edge + 0.22 * f.entropy + 0.18 * f.midtone + 0.18 * f.contrast;
-  // XGBoost analogue — richer feature mix, small bias term
-  const xgb =
-    0.38 * f.edge +
-    0.24 * f.entropy +
+    0.34 * f.edge +
+    0.18 * f.entropy +
     0.14 * f.midtone +
     0.14 * f.contrast +
-    0.08 * f.variance +
+    0.1 * f.orient +
+    0.1 * f.lbp;
+  // XGBoost analogue — richer feature mix, small bias term
+  const xgb =
+    0.3 * f.edge +
+    0.18 * f.entropy +
+    0.12 * f.midtone +
+    0.12 * f.contrast +
+    0.06 * f.variance +
+    0.11 * f.orient +
+    0.09 * f.lbp +
     0.02 * (1 - Math.abs(f.brightness - 0.5) * 2);
-  // Decision Tree analogue — coarse threshold rules
+  // Decision Tree analogue — coarse threshold rules over the strongest
+  // discriminators (edge coverage, micro-texture busyness, isotropy).
   const dt =
-    f.edge > 0.42 ? 0.82 : f.edge > 0.22 ? 0.5 : f.contrast > 0.35 ? 0.4 : 0.18;
+    f.edge > 0.42 && f.lbp > 0.45
+      ? 0.88
+      : f.edge > 0.42
+        ? 0.78
+        : f.edge > 0.22 && f.orient > 0.72
+          ? 0.6
+          : f.edge > 0.22
+            ? 0.48
+            : f.contrast > 0.35
+              ? 0.38
+              : 0.16;
 
   const weights = { rf: 0.3, xgb: 0.46, dt: 0.24 };
   const raw = weights.rf * rf + weights.xgb * xgb + weights.dt * dt;
@@ -279,12 +297,13 @@ function ensembleScore(f: Features): EnsembleBreakdown {
   // Only RF and XGB are linear; DT is a threshold rule handled separately.
   // contribution_feat = sum over linear models of (model_weight * coeff * value)
   const rfCoeffs: Record<keyof Features, number> = {
-    edge: 0.42, entropy: 0.22, midtone: 0.18, contrast: 0.18,
+    edge: 0.34, entropy: 0.18, midtone: 0.14, contrast: 0.14,
+    orient: 0.1, lbp: 0.1,
     brightness: 0, variance: 0,
   };
   const xgbCoeffs: Record<keyof Features, number> = {
-    edge: 0.38, entropy: 0.24, midtone: 0.14, contrast: 0.14,
-    variance: 0.08,
+    edge: 0.3, entropy: 0.18, midtone: 0.12, contrast: 0.12,
+    variance: 0.06, orient: 0.11, lbp: 0.09,
     brightness: 0.02 * (1 - Math.abs(f.brightness - 0.5) * 2),
   };
   const contributions = {} as Record<keyof Features, number>;
@@ -307,14 +326,33 @@ function classifyScore(score: number): RiskLevel {
   return "High";
 }
 
-function estimatePeople(score: number, area: number): number {
-  // Calibrated against sample frames: ~0 people for empty rooms,
-  // ~30-60 for moderate gatherings, 200-450 for dense crowds.
+/**
+ * Scale-aware count regression.
+ * Instead of assuming a fixed person size, the multi-scale scale estimate
+ * gives an approximate footprint per person (in pixels); the crowd-covered
+ * pixel area is then divided by that footprint. Blended with the previous
+ * density regression for stability on low-texture frames.
+ */
+function estimatePeople(
+  score: number,
+  area: number,
+  scale: number,
+  f: Features,
+): number {
+  // Fraction of the frame that looks like crowd texture.
+  const coverage = Math.min(1, 0.55 * f.edge + 0.25 * f.lbp + 0.2 * f.midtone);
+  // Person footprint in px²: small scale ⇒ distant/dense crowd ⇒ many people.
+  const footprint = Math.max(120, 5200 * Math.pow(scale, 1.8));
+  const geometric = (area * coverage) / footprint;
+
+  // Legacy density regression (kept as a stabiliser).
   const density = Math.pow(score, 1.35) * 5.2;
-  const base = density * (area / 28000);
-  const jitter = (Math.sin(score * 97.3) + 1) * 1.5;
-  return Math.max(0, Math.round(base + jitter));
+  const regression = density * (area / 28000);
+
+  const fused = 0.62 * geometric + 0.38 * regression;
+  return Math.max(0, Math.round(fused * (0.55 + score * 0.75)));
 }
+
 
 function recommendationsFor(risk: RiskLevel): string[] {
   if (risk === "Low")
