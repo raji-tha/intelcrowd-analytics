@@ -536,6 +536,7 @@ export async function analyzeCanvas(
 export async function analyzeFile(
   file: File,
   dataUrl: string,
+  context?: SceneContext,
 ): Promise<Analysis> {
   const isVideo = file.type.startsWith("video/");
   let source: HTMLCanvasElement;
@@ -554,5 +555,7 @@ export async function analyzeFile(
     fileName: file.name,
     fileType: isVideo ? "video" : "image",
     dataUrl,
+    context,
   });
 }
+
