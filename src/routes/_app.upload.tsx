@@ -175,7 +175,12 @@ function UploadPage() {
     c.height = Math.max(1, Math.round(v.videoHeight * scale));
     c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
     const name = `${mode === "camera" ? "Webcam" : "Screen"} frame ${new Date().toLocaleTimeString()}`;
-    const a = await analyzeCanvas(c, { fileName: name, fileType: "image" });
+    const a = await analyzeCanvas(c, {
+      fileName: name,
+      fileType: "image",
+      context: sceneRef.current,
+    });
+
     saveAnalysis(a);
     setResult(a);
   }, [mode]);
