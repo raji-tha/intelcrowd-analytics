@@ -79,6 +79,8 @@ interface Features {
   brightness: number; // 0..1  mean luminance
   variance: number; // 0..1  luminance variance (texture busyness)
   contrast: number; // 0..1  local RMS contrast
+  orient: number; // 0..1  HOG-lite gradient-orientation isotropy
+  lbp: number; // 0..1  LBP uniform-pattern ratio (crowd micro-texture)
 }
 
 export type ExplainFeatures = Features;
@@ -90,6 +92,7 @@ export interface EnsembleBreakdown {
   // SHAP-like contribution of each feature to the (linear) ensemble raw score.
   contributions: Record<keyof Features, number>;
 }
+
 
 function extractFeatures(
   data: Uint8ClampedArray,
