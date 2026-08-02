@@ -22,6 +22,8 @@ import { Heatmap } from "@/components/Heatmap";
 import { generateReportPdf } from "@/lib/pdf";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeWithVision } from "@/lib/vision.functions";
+import { EVENT_TYPES, useSceneContext, type EventType } from "@/lib/context";
+
 
 export const Route = createFileRoute("/_app/upload")({
   head: () => ({ meta: [{ title: "Upload — CrowdVision AI" }] }),
