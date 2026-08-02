@@ -85,6 +85,13 @@ function UploadPage() {
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [interval, setIntervalSec] = useState(3);
 
+  // Scene context ("text data") entered by the operator — feeds calibration.
+  const [scene, updateScene] = useSceneContext();
+  const sceneRef = useRef(scene);
+  useEffect(() => {
+    sceneRef.current = scene;
+  }, [scene]);
+
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
@@ -97,7 +104,7 @@ function UploadPage() {
     }
     try {
       const dataUrl = await fileToDataUrl(file);
-      const analysis = await analyzeFile(file, dataUrl);
+      const analysis = await analyzeFile(file, dataUrl, sceneRef.current);
       saveAnalysis(analysis);
       setResult(analysis);
       return analysis;
@@ -107,6 +114,7 @@ function UploadPage() {
       return null;
     }
   }, []);
+
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
