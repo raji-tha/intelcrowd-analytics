@@ -381,19 +381,69 @@ function recommendationsFor(risk: RiskLevel): string[] {
 
 export async function analyzeCanvas(
   source: HTMLCanvasElement,
-  meta: { fileName: string; fileType: "image" | "video"; dataUrl?: string },
+  meta: {
+    fileName: string;
+    fileType: "image" | "video";
+    dataUrl?: string;
+    context?: SceneContext;
+  },
 ): Promise<Analysis> {
   const ctx = source.getContext("2d")!;
   const { width: W, height: H } = source;
   const dataUrl = meta.dataUrl ?? source.toDataURL("image/jpeg", 0.85);
 
-  const global = extractFeatures(ctx.getImageData(0, 0, W, H).data, W, H);
+  const full = ctx.getImageData(0, 0, W, H).data;
+  const global = extractFeatures(full, W, H);
+  const scale = estimateScale(toGray(full, W, H), W, H);
   const { score, confidence, subModels, contributions } = ensembleScore(global);
-  const risk = classifyScore(score);
-  const peopleCount = estimatePeople(score, W * H);
+  let peopleCount = estimatePeople(score, W * H, scale, global);
+
+  // ---- scene-context calibration (operator text data) ----
+  const sc = meta.context;
+  const areaSqm = sc?.areaSqm && sc.areaSqm > 0 ? sc.areaSqm : null;
+  const capacity = sc?.capacity && sc.capacity > 0 ? sc.capacity : null;
+  if (capacity) {
+    // Physically impossible counts get clamped to 1.6x rated capacity.
+    peopleCount = Math.min(peopleCount, Math.round(capacity * 1.6));
+  }
+
+  const personsPerSqm = areaSqm ? +(peopleCount / areaSqm).toFixed(2) : null;
+  const occupancy = capacity ? +(peopleCount / capacity).toFixed(2) : null;
+  const los = personsPerSqm != null ? fruinLos(personsPerSqm) : null;
+
+  const eventRisk =
+    EVENT_TYPES.find((e) => e.id === (sc?.eventType ?? "unspecified"))?.risk ?? 0;
+  // Fuse the vision score with real-world density (Fruin) + occupancy +
+  // event-type prior. Weights fall back to pure vision when no text data.
+  let fused = score;
+  if (personsPerSqm != null) {
+    const losScore = Math.min(1, personsPerSqm / 3.5);
+    fused = 0.55 * fused + 0.45 * losScore;
+  }
+  if (occupancy != null) {
+    fused = 0.7 * fused + 0.3 * Math.min(1, occupancy);
+  }
+  if (sc?.exits && sc.exits > 0 && peopleCount > 0) {
+    // ~250 persons per exit per minute egress guideline: penalise thin egress.
+    const egressLoad = Math.min(1, peopleCount / (sc.exits * 250));
+    fused = 0.85 * fused + 0.15 * egressLoad;
+  }
+  fused = Math.max(0, Math.min(1, fused + eventRisk * 0.5));
+
+  const risk = classifyScore(fused);
   const density = +(peopleCount / ((W * H) / 10000)).toFixed(2);
   const densityLevel: RiskLevel =
-    density < 1.2 ? "Low" : density < 3 ? "Medium" : "High";
+    personsPerSqm != null
+      ? personsPerSqm < 0.72
+        ? "Low"
+        : personsPerSqm < 2.17
+          ? "Medium"
+          : "High"
+      : density < 1.2
+        ? "Low"
+        : density < 3
+          ? "Medium"
+          : "High";
 
   const zoneW = Math.floor(W / GRID);
   const zoneH = Math.floor(H / GRID);
@@ -423,9 +473,21 @@ export async function analyzeCanvas(
   const factor = peopleCount / total;
   for (const z of zones) z.count = Math.round(z.count * factor);
 
-  const growth = 0.9 + score * 0.7;
+  const growth = 0.9 + fused * 0.7;
   const expectedCount = Math.round(peopleCount * growth);
-  const expectedRisk = classifyScore(Math.min(1, score * growth * 0.95));
+  const expectedRisk = classifyScore(Math.min(1, fused * growth * 0.95));
+
+  const recommendations = recommendationsFor(risk);
+  if (los && (los.grade === "E" || los.grade === "F")) {
+    recommendations.unshift(
+      `Measured density ${personsPerSqm} persons/m² is Fruin LOS ${los.grade} (${los.label}) — restrict inflow now.`,
+    );
+  }
+  if (occupancy != null && occupancy > 1) {
+    recommendations.unshift(
+      `Area is at ${Math.round(occupancy * 100)}% of stated safe capacity.`,
+    );
+  }
 
   return {
     id: crypto.randomUUID(),
@@ -436,10 +498,10 @@ export async function analyzeCanvas(
     density,
     densityLabel: densityLevel,
     risk,
-    riskScore: Math.round(score * 100),
+    riskScore: Math.round(fused * 100),
     zones,
     prediction: { horizonMin: 15, expectedCount, expectedRisk },
-    recommendations: recommendationsFor(risk),
+    recommendations,
     createdAt: new Date().toISOString(),
     confidence: +(confidence * 100).toFixed(1),
     features: {
@@ -448,14 +510,21 @@ export async function analyzeCanvas(
       midtone: +global.midtone.toFixed(3),
       brightness: +global.brightness.toFixed(3),
     },
-    model: "Ensemble (RF + XGBoost + Decision Tree)",
+    model: "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale)",
     explain: {
       subModels,
       contributions,
       features: global,
     },
+    scaleEstimate: +scale.toFixed(3),
+    personsPerSqm: personsPerSqm ?? undefined,
+    occupancy: occupancy ?? undefined,
+    losGrade: los?.grade,
+    losLabel: los?.label,
+    context: sc && hasContext(sc) ? sc : undefined,
   };
 }
+
 
 export async function analyzeFile(
   file: File,
