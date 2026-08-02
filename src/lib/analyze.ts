@@ -118,19 +118,47 @@ function extractFeatures(
     if (y > 55 && y < 210) midtoneCount++;
   }
 
-  // Sobel-lite: sum of |Ix| + |Iy| on a subsampled grid
+  // Sobel-lite gradients + HOG-lite orientation histogram + LBP micro-texture.
   const step = 2;
   let edgePixels = 0;
   let localContrast = 0;
+  const orientHist = new Array(8).fill(0);
+  let lbpUniform = 0;
+  let lbpTotal = 0;
   for (let y = 1; y < h - 1; y += step) {
     for (let x = 1; x < w - 1; x += step) {
       const i = y * w + x;
-      const gx = Math.abs(gray[i + 1] - gray[i - 1]);
-      const gy = Math.abs(gray[i + w] - gray[i - w]);
-      const m = gx + gy;
+      const dx = gray[i + 1] - gray[i - 1];
+      const dy = gray[i + w] - gray[i - w];
+      const m = Math.abs(dx) + Math.abs(dy);
       if (m > 40) edgeSum += m;
       localContrast += m;
       edgePixels++;
+
+      if (m > 25) {
+        // 8-bin unsigned orientation histogram (HOG-lite)
+        let ang = Math.atan2(dy, dx);
+        if (ang < 0) ang += Math.PI;
+        orientHist[Math.min(7, ((ang / Math.PI) * 8) | 0)] += m;
+      }
+
+      // Local Binary Pattern (8 neighbours) — uniform patterns dominate in
+      // smooth regions; crowds produce many non-uniform (busy) patterns.
+      if (x > 1 && y > 1 && x < w - 2 && y < h - 2) {
+        const c = gray[i];
+        const n = [
+          gray[i - w - 1], gray[i - w], gray[i - w + 1], gray[i + 1],
+          gray[i + w + 1], gray[i + w], gray[i + w - 1], gray[i - 1],
+        ];
+        let transitions = 0;
+        for (let k = 0; k < 8; k++) {
+          const a = n[k] >= c ? 1 : 0;
+          const b = n[(k + 1) % 8] >= c ? 1 : 0;
+          if (a !== b) transitions++;
+        }
+        if (transitions <= 2) lbpUniform++;
+        lbpTotal++;
+      }
     }
   }
 
@@ -143,6 +171,16 @@ function extractFeatures(
     entropy -= p * Math.log2(p);
   }
 
+  // Orientation isotropy: uniform orientation distribution (high entropy)
+  // indicates many overlapping human silhouettes rather than architecture.
+  const orientTotal = orientHist.reduce((s, v) => s + v, 0) || 1;
+  let orientEntropy = 0;
+  for (const c of orientHist) {
+    if (c === 0) continue;
+    const p = c / orientTotal;
+    orientEntropy -= p * Math.log2(p);
+  }
+
   const mean = brightSum / pixels;
   const variance = Math.max(0, sqSum / pixels - mean * mean);
 
@@ -153,8 +191,52 @@ function extractFeatures(
     brightness: mean / 255,
     variance: Math.min(1, variance / 4000),
     contrast: Math.min(1, localContrast / (edgePixels * 90)),
+    orient: Math.min(1, orientEntropy / 3),
+    lbp: lbpTotal ? 1 - lbpUniform / lbpTotal : 0,
   };
 }
+
+/**
+ * Multi-scale head/person scale estimate.
+ * Edge density is measured on a 3-level pyramid; the decay rate across
+ * scales is proportional to the dominant object size in the frame, which
+ * lets us convert edge coverage into an object-count estimate instead of
+ * relying on frame area alone.
+ */
+function estimateScale(gray: Float32Array, w: number, h: number): number {
+  const density = (stride: number) => {
+    let hits = 0;
+    let n = 0;
+    for (let y = stride; y < h - stride; y += stride) {
+      for (let x = stride; x < w - stride; x += stride) {
+        const i = y * w + x;
+        const m =
+          Math.abs(gray[i + stride] - gray[i - stride]) +
+          Math.abs(gray[i + stride * w] - gray[i - stride * w]);
+        if (m > 35) hits++;
+        n++;
+      }
+    }
+    return n ? hits / n : 0;
+  };
+  const d1 = density(1);
+  const d2 = density(2);
+  const d4 = density(4);
+  // Slow decay ⇒ large objects (few, close people). Fast decay ⇒ fine
+  // repeated structures (dense distant crowd).
+  const decay = (d1 - d4) / (d1 + 1e-6);
+  const midRatio = d2 / (d1 + 1e-6);
+  return Math.max(0.15, Math.min(1, 0.5 * (1 - decay) + 0.5 * midRatio));
+}
+
+function toGray(data: Uint8ClampedArray, w: number, h: number): Float32Array {
+  const g = new Float32Array(w * h);
+  for (let i = 0, p = 0; p < data.length; p += 4, i++) {
+    g[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+  }
+  return g;
+}
+
 
 // -------------------- ensemble classifier --------------------
 
