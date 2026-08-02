@@ -1,4 +1,11 @@
 import type { Analysis, RiskLevel } from "./store";
+import {
+  EVENT_TYPES,
+  fruinLos,
+  hasContext,
+  type SceneContext,
+} from "./context";
+
 
 /**
  * CrowdVision detection & classification pipeline (browser-side).
