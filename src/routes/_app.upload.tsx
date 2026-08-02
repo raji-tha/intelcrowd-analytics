@@ -22,6 +22,8 @@ import { Heatmap } from "@/components/Heatmap";
 import { generateReportPdf } from "@/lib/pdf";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeWithVision } from "@/lib/vision.functions";
+import { EVENT_TYPES, useSceneContext, type EventType } from "@/lib/context";
+
 
 export const Route = createFileRoute("/_app/upload")({
   head: () => ({ meta: [{ title: "Upload — CrowdVision AI" }] }),
@@ -85,6 +87,13 @@ function UploadPage() {
   const [autoAnalyze, setAutoAnalyze] = useState(true);
   const [interval, setIntervalSec] = useState(3);
 
+  // Scene context ("text data") entered by the operator — feeds calibration.
+  const [scene, updateScene] = useSceneContext();
+  const sceneRef = useRef(scene);
+  useEffect(() => {
+    sceneRef.current = scene;
+  }, [scene]);
+
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
@@ -97,7 +106,7 @@ function UploadPage() {
     }
     try {
       const dataUrl = await fileToDataUrl(file);
-      const analysis = await analyzeFile(file, dataUrl);
+      const analysis = await analyzeFile(file, dataUrl, sceneRef.current);
       saveAnalysis(analysis);
       setResult(analysis);
       return analysis;
@@ -107,6 +116,7 @@ function UploadPage() {
       return null;
     }
   }, []);
+
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -165,7 +175,12 @@ function UploadPage() {
     c.height = Math.max(1, Math.round(v.videoHeight * scale));
     c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
     const name = `${mode === "camera" ? "Webcam" : "Screen"} frame ${new Date().toLocaleTimeString()}`;
-    const a = await analyzeCanvas(c, { fileName: name, fileType: "image" });
+    const a = await analyzeCanvas(c, {
+      fileName: name,
+      fileType: "image",
+      context: sceneRef.current,
+    });
+
     saveAnalysis(a);
     setResult(a);
   }, [mode]);
@@ -234,6 +249,126 @@ function UploadPage() {
           Upload files, drag & drop, paste screenshots, or stream from your camera or screen.
         </p>
       </div>
+
+      {/* Scene context — operator text data used to calibrate the model */}
+      <details
+        open
+        className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+      >
+        <summary className="cursor-pointer text-sm font-semibold flex items-center gap-2">
+          <FileText className="size-4 text-primary" />
+          Scene context (text data)
+          <span className="ml-2 font-normal text-xs text-muted-foreground">
+            optional — calibrates density, Fruin LOS and risk
+          </span>
+        </summary>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Venue / location
+            <input
+              value={scene.venue}
+              onChange={(e) => updateScene({ venue: e.target.value })}
+              placeholder="e.g. North gate, Stadium A"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Event type
+            <select
+              value={scene.eventType}
+              onChange={(e) =>
+                updateScene({ eventType: e.target.value as EventType })
+              }
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            >
+              {EVENT_TYPES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Observed area (m²)
+            <input
+              type="number"
+              min={0}
+              value={scene.areaSqm ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  areaSqm: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 400"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Safe capacity (persons)
+            <input
+              type="number"
+              min={0}
+              value={scene.capacity ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  capacity: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 1200"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Exits / egress points
+            <input
+              type="number"
+              min={0}
+              value={scene.exits ?? ""}
+              onChange={(e) =>
+                updateScene({
+                  exits: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 4"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1">
+            Time of day / phase
+            <input
+              value={scene.timeOfDay}
+              onChange={(e) => updateScene({ timeOfDay: e.target.value })}
+              placeholder="e.g. 18:30 peak entry"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1 sm:col-span-2 lg:col-span-1">
+            Weather / conditions
+            <input
+              value={scene.weather}
+              onChange={(e) => updateScene({ weather: e.target.value })}
+              placeholder="e.g. hot, humid, light rain"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground grid gap-1 sm:col-span-2 lg:col-span-3">
+            Observations / notes
+            <textarea
+              rows={3}
+              value={scene.notes}
+              onChange={(e) => updateScene({ notes: e.target.value })}
+              placeholder="Free-text notes recorded with every analysis — bottlenecks observed, announcements made, incidents, gate status…"
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm text-foreground resize-y"
+            />
+          </label>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Saved automatically and attached to every analysis you run below.
+        </p>
+      </details>
+
+
 
       {/* Mode switcher */}
       <div className="inline-flex rounded-lg border border-border bg-card p-1 text-sm">
@@ -441,6 +576,54 @@ function UploadPage() {
               </div>
             ))}
           </div>
+
+          {(result.personsPerSqm != null ||
+            result.occupancy != null ||
+            result.context) && (
+            <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 text-sm grid gap-2">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                Context-calibrated metrics
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-1">
+                {result.personsPerSqm != null && (
+                  <span>
+                    <strong>{result.personsPerSqm}</strong> persons/m²
+                  </span>
+                )}
+                {result.losGrade && (
+                  <span>
+                    Fruin LOS <strong>{result.losGrade}</strong> — {result.losLabel}
+                  </span>
+                )}
+                {result.occupancy != null && (
+                  <span>
+                    Occupancy <strong>{Math.round(result.occupancy * 100)}%</strong> of
+                    capacity
+                  </span>
+                )}
+                {result.scaleEstimate != null && (
+                  <span className="text-muted-foreground">
+                    scale est. {result.scaleEstimate}
+                  </span>
+                )}
+              </div>
+              {result.context && (
+                <div className="text-xs text-muted-foreground">
+                  {[
+                    result.context.venue,
+                    EVENT_TYPES.find((e) => e.id === result.context!.eventType)?.label,
+                    result.context.timeOfDay,
+                    result.context.weather,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {result.context.notes && <div className="mt-1">{result.context.notes}</div>}
+                </div>
+              )}
+            </div>
+          )}
+
+
 
           {(result.model || result.confidence != null || result.features) && (
             <div className="rounded-lg border border-border p-4 bg-background/60 text-xs text-muted-foreground grid gap-1">

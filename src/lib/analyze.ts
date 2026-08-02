@@ -1,4 +1,11 @@
 import type { Analysis, RiskLevel } from "./store";
+import {
+  EVENT_TYPES,
+  fruinLos,
+  hasContext,
+  type SceneContext,
+} from "./context";
+
 
 /**
  * CrowdVision detection & classification pipeline (browser-side).
@@ -79,6 +86,8 @@ interface Features {
   brightness: number; // 0..1  mean luminance
   variance: number; // 0..1  luminance variance (texture busyness)
   contrast: number; // 0..1  local RMS contrast
+  orient: number; // 0..1  HOG-lite gradient-orientation isotropy
+  lbp: number; // 0..1  LBP uniform-pattern ratio (crowd micro-texture)
 }
 
 export type ExplainFeatures = Features;
@@ -90,6 +99,7 @@ export interface EnsembleBreakdown {
   // SHAP-like contribution of each feature to the (linear) ensemble raw score.
   contributions: Record<keyof Features, number>;
 }
+
 
 function extractFeatures(
   data: Uint8ClampedArray,
@@ -115,19 +125,47 @@ function extractFeatures(
     if (y > 55 && y < 210) midtoneCount++;
   }
 
-  // Sobel-lite: sum of |Ix| + |Iy| on a subsampled grid
+  // Sobel-lite gradients + HOG-lite orientation histogram + LBP micro-texture.
   const step = 2;
   let edgePixels = 0;
   let localContrast = 0;
+  const orientHist = new Array(8).fill(0);
+  let lbpUniform = 0;
+  let lbpTotal = 0;
   for (let y = 1; y < h - 1; y += step) {
     for (let x = 1; x < w - 1; x += step) {
       const i = y * w + x;
-      const gx = Math.abs(gray[i + 1] - gray[i - 1]);
-      const gy = Math.abs(gray[i + w] - gray[i - w]);
-      const m = gx + gy;
+      const dx = gray[i + 1] - gray[i - 1];
+      const dy = gray[i + w] - gray[i - w];
+      const m = Math.abs(dx) + Math.abs(dy);
       if (m > 40) edgeSum += m;
       localContrast += m;
       edgePixels++;
+
+      if (m > 25) {
+        // 8-bin unsigned orientation histogram (HOG-lite)
+        let ang = Math.atan2(dy, dx);
+        if (ang < 0) ang += Math.PI;
+        orientHist[Math.min(7, ((ang / Math.PI) * 8) | 0)] += m;
+      }
+
+      // Local Binary Pattern (8 neighbours) — uniform patterns dominate in
+      // smooth regions; crowds produce many non-uniform (busy) patterns.
+      if (x > 1 && y > 1 && x < w - 2 && y < h - 2) {
+        const c = gray[i];
+        const n = [
+          gray[i - w - 1], gray[i - w], gray[i - w + 1], gray[i + 1],
+          gray[i + w + 1], gray[i + w], gray[i + w - 1], gray[i - 1],
+        ];
+        let transitions = 0;
+        for (let k = 0; k < 8; k++) {
+          const a = n[k] >= c ? 1 : 0;
+          const b = n[(k + 1) % 8] >= c ? 1 : 0;
+          if (a !== b) transitions++;
+        }
+        if (transitions <= 2) lbpUniform++;
+        lbpTotal++;
+      }
     }
   }
 
@@ -140,6 +178,16 @@ function extractFeatures(
     entropy -= p * Math.log2(p);
   }
 
+  // Orientation isotropy: uniform orientation distribution (high entropy)
+  // indicates many overlapping human silhouettes rather than architecture.
+  const orientTotal = orientHist.reduce((s, v) => s + v, 0) || 1;
+  let orientEntropy = 0;
+  for (const c of orientHist) {
+    if (c === 0) continue;
+    const p = c / orientTotal;
+    orientEntropy -= p * Math.log2(p);
+  }
+
   const mean = brightSum / pixels;
   const variance = Math.max(0, sqSum / pixels - mean * mean);
 
@@ -150,8 +198,52 @@ function extractFeatures(
     brightness: mean / 255,
     variance: Math.min(1, variance / 4000),
     contrast: Math.min(1, localContrast / (edgePixels * 90)),
+    orient: Math.min(1, orientEntropy / 3),
+    lbp: lbpTotal ? 1 - lbpUniform / lbpTotal : 0,
   };
 }
+
+/**
+ * Multi-scale head/person scale estimate.
+ * Edge density is measured on a 3-level pyramid; the decay rate across
+ * scales is proportional to the dominant object size in the frame, which
+ * lets us convert edge coverage into an object-count estimate instead of
+ * relying on frame area alone.
+ */
+function estimateScale(gray: Float32Array, w: number, h: number): number {
+  const density = (stride: number) => {
+    let hits = 0;
+    let n = 0;
+    for (let y = stride; y < h - stride; y += stride) {
+      for (let x = stride; x < w - stride; x += stride) {
+        const i = y * w + x;
+        const m =
+          Math.abs(gray[i + stride] - gray[i - stride]) +
+          Math.abs(gray[i + stride * w] - gray[i - stride * w]);
+        if (m > 35) hits++;
+        n++;
+      }
+    }
+    return n ? hits / n : 0;
+  };
+  const d1 = density(1);
+  const d2 = density(2);
+  const d4 = density(4);
+  // Slow decay ⇒ large objects (few, close people). Fast decay ⇒ fine
+  // repeated structures (dense distant crowd).
+  const decay = (d1 - d4) / (d1 + 1e-6);
+  const midRatio = d2 / (d1 + 1e-6);
+  return Math.max(0.15, Math.min(1, 0.5 * (1 - decay) + 0.5 * midRatio));
+}
+
+function toGray(data: Uint8ClampedArray, w: number, h: number): Float32Array {
+  const g = new Float32Array(w * h);
+  for (let i = 0, p = 0; p < data.length; p += 4, i++) {
+    g[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+  }
+  return g;
+}
+
 
 // -------------------- ensemble classifier --------------------
 
@@ -167,18 +259,36 @@ function extractFeatures(
 function ensembleScore(f: Features): EnsembleBreakdown {
   // Random Forest analogue — favors edge & texture busyness
   const rf =
-    0.42 * f.edge + 0.22 * f.entropy + 0.18 * f.midtone + 0.18 * f.contrast;
-  // XGBoost analogue — richer feature mix, small bias term
-  const xgb =
-    0.38 * f.edge +
-    0.24 * f.entropy +
+    0.34 * f.edge +
+    0.18 * f.entropy +
     0.14 * f.midtone +
     0.14 * f.contrast +
-    0.08 * f.variance +
+    0.1 * f.orient +
+    0.1 * f.lbp;
+  // XGBoost analogue — richer feature mix, small bias term
+  const xgb =
+    0.3 * f.edge +
+    0.18 * f.entropy +
+    0.12 * f.midtone +
+    0.12 * f.contrast +
+    0.06 * f.variance +
+    0.11 * f.orient +
+    0.09 * f.lbp +
     0.02 * (1 - Math.abs(f.brightness - 0.5) * 2);
-  // Decision Tree analogue — coarse threshold rules
+  // Decision Tree analogue — coarse threshold rules over the strongest
+  // discriminators (edge coverage, micro-texture busyness, isotropy).
   const dt =
-    f.edge > 0.42 ? 0.82 : f.edge > 0.22 ? 0.5 : f.contrast > 0.35 ? 0.4 : 0.18;
+    f.edge > 0.42 && f.lbp > 0.45
+      ? 0.88
+      : f.edge > 0.42
+        ? 0.78
+        : f.edge > 0.22 && f.orient > 0.72
+          ? 0.6
+          : f.edge > 0.22
+            ? 0.48
+            : f.contrast > 0.35
+              ? 0.38
+              : 0.16;
 
   const weights = { rf: 0.3, xgb: 0.46, dt: 0.24 };
   const raw = weights.rf * rf + weights.xgb * xgb + weights.dt * dt;
@@ -194,12 +304,13 @@ function ensembleScore(f: Features): EnsembleBreakdown {
   // Only RF and XGB are linear; DT is a threshold rule handled separately.
   // contribution_feat = sum over linear models of (model_weight * coeff * value)
   const rfCoeffs: Record<keyof Features, number> = {
-    edge: 0.42, entropy: 0.22, midtone: 0.18, contrast: 0.18,
+    edge: 0.34, entropy: 0.18, midtone: 0.14, contrast: 0.14,
+    orient: 0.1, lbp: 0.1,
     brightness: 0, variance: 0,
   };
   const xgbCoeffs: Record<keyof Features, number> = {
-    edge: 0.38, entropy: 0.24, midtone: 0.14, contrast: 0.14,
-    variance: 0.08,
+    edge: 0.3, entropy: 0.18, midtone: 0.12, contrast: 0.12,
+    variance: 0.06, orient: 0.11, lbp: 0.09,
     brightness: 0.02 * (1 - Math.abs(f.brightness - 0.5) * 2),
   };
   const contributions = {} as Record<keyof Features, number>;
@@ -222,14 +333,33 @@ function classifyScore(score: number): RiskLevel {
   return "High";
 }
 
-function estimatePeople(score: number, area: number): number {
-  // Calibrated against sample frames: ~0 people for empty rooms,
-  // ~30-60 for moderate gatherings, 200-450 for dense crowds.
+/**
+ * Scale-aware count regression.
+ * Instead of assuming a fixed person size, the multi-scale scale estimate
+ * gives an approximate footprint per person (in pixels); the crowd-covered
+ * pixel area is then divided by that footprint. Blended with the previous
+ * density regression for stability on low-texture frames.
+ */
+function estimatePeople(
+  score: number,
+  area: number,
+  scale: number,
+  f: Features,
+): number {
+  // Fraction of the frame that looks like crowd texture.
+  const coverage = Math.min(1, 0.55 * f.edge + 0.25 * f.lbp + 0.2 * f.midtone);
+  // Person footprint in px²: small scale ⇒ distant/dense crowd ⇒ many people.
+  const footprint = Math.max(120, 5200 * Math.pow(scale, 1.8));
+  const geometric = (area * coverage) / footprint;
+
+  // Legacy density regression (kept as a stabiliser).
   const density = Math.pow(score, 1.35) * 5.2;
-  const base = density * (area / 28000);
-  const jitter = (Math.sin(score * 97.3) + 1) * 1.5;
-  return Math.max(0, Math.round(base + jitter));
+  const regression = density * (area / 28000);
+
+  const fused = 0.62 * geometric + 0.38 * regression;
+  return Math.max(0, Math.round(fused * (0.55 + score * 0.75)));
 }
+
 
 function recommendationsFor(risk: RiskLevel): string[] {
   if (risk === "Low")
@@ -258,19 +388,69 @@ function recommendationsFor(risk: RiskLevel): string[] {
 
 export async function analyzeCanvas(
   source: HTMLCanvasElement,
-  meta: { fileName: string; fileType: "image" | "video"; dataUrl?: string },
+  meta: {
+    fileName: string;
+    fileType: "image" | "video";
+    dataUrl?: string;
+    context?: SceneContext;
+  },
 ): Promise<Analysis> {
   const ctx = source.getContext("2d")!;
   const { width: W, height: H } = source;
   const dataUrl = meta.dataUrl ?? source.toDataURL("image/jpeg", 0.85);
 
-  const global = extractFeatures(ctx.getImageData(0, 0, W, H).data, W, H);
+  const full = ctx.getImageData(0, 0, W, H).data;
+  const global = extractFeatures(full, W, H);
+  const scale = estimateScale(toGray(full, W, H), W, H);
   const { score, confidence, subModels, contributions } = ensembleScore(global);
-  const risk = classifyScore(score);
-  const peopleCount = estimatePeople(score, W * H);
+  let peopleCount = estimatePeople(score, W * H, scale, global);
+
+  // ---- scene-context calibration (operator text data) ----
+  const sc = meta.context;
+  const areaSqm = sc?.areaSqm && sc.areaSqm > 0 ? sc.areaSqm : null;
+  const capacity = sc?.capacity && sc.capacity > 0 ? sc.capacity : null;
+  if (capacity) {
+    // Physically impossible counts get clamped to 1.6x rated capacity.
+    peopleCount = Math.min(peopleCount, Math.round(capacity * 1.6));
+  }
+
+  const personsPerSqm = areaSqm ? +(peopleCount / areaSqm).toFixed(2) : null;
+  const occupancy = capacity ? +(peopleCount / capacity).toFixed(2) : null;
+  const los = personsPerSqm != null ? fruinLos(personsPerSqm) : null;
+
+  const eventRisk =
+    EVENT_TYPES.find((e) => e.id === (sc?.eventType ?? "unspecified"))?.risk ?? 0;
+  // Fuse the vision score with real-world density (Fruin) + occupancy +
+  // event-type prior. Weights fall back to pure vision when no text data.
+  let fused = score;
+  if (personsPerSqm != null) {
+    const losScore = Math.min(1, personsPerSqm / 3.5);
+    fused = 0.55 * fused + 0.45 * losScore;
+  }
+  if (occupancy != null) {
+    fused = 0.7 * fused + 0.3 * Math.min(1, occupancy);
+  }
+  if (sc?.exits && sc.exits > 0 && peopleCount > 0) {
+    // ~250 persons per exit per minute egress guideline: penalise thin egress.
+    const egressLoad = Math.min(1, peopleCount / (sc.exits * 250));
+    fused = 0.85 * fused + 0.15 * egressLoad;
+  }
+  fused = Math.max(0, Math.min(1, fused + eventRisk * 0.5));
+
+  const risk = classifyScore(fused);
   const density = +(peopleCount / ((W * H) / 10000)).toFixed(2);
   const densityLevel: RiskLevel =
-    density < 1.2 ? "Low" : density < 3 ? "Medium" : "High";
+    personsPerSqm != null
+      ? personsPerSqm < 0.72
+        ? "Low"
+        : personsPerSqm < 2.17
+          ? "Medium"
+          : "High"
+      : density < 1.2
+        ? "Low"
+        : density < 3
+          ? "Medium"
+          : "High";
 
   const zoneW = Math.floor(W / GRID);
   const zoneH = Math.floor(H / GRID);
@@ -300,9 +480,21 @@ export async function analyzeCanvas(
   const factor = peopleCount / total;
   for (const z of zones) z.count = Math.round(z.count * factor);
 
-  const growth = 0.9 + score * 0.7;
+  const growth = 0.9 + fused * 0.7;
   const expectedCount = Math.round(peopleCount * growth);
-  const expectedRisk = classifyScore(Math.min(1, score * growth * 0.95));
+  const expectedRisk = classifyScore(Math.min(1, fused * growth * 0.95));
+
+  const recommendations = recommendationsFor(risk);
+  if (los && (los.grade === "E" || los.grade === "F")) {
+    recommendations.unshift(
+      `Measured density ${personsPerSqm} persons/m² is Fruin LOS ${los.grade} (${los.label}) — restrict inflow now.`,
+    );
+  }
+  if (occupancy != null && occupancy > 1) {
+    recommendations.unshift(
+      `Area is at ${Math.round(occupancy * 100)}% of stated safe capacity.`,
+    );
+  }
 
   return {
     id: crypto.randomUUID(),
@@ -313,10 +505,10 @@ export async function analyzeCanvas(
     density,
     densityLabel: densityLevel,
     risk,
-    riskScore: Math.round(score * 100),
+    riskScore: Math.round(fused * 100),
     zones,
     prediction: { horizonMin: 15, expectedCount, expectedRisk },
-    recommendations: recommendationsFor(risk),
+    recommendations,
     createdAt: new Date().toISOString(),
     confidence: +(confidence * 100).toFixed(1),
     features: {
@@ -325,18 +517,26 @@ export async function analyzeCanvas(
       midtone: +global.midtone.toFixed(3),
       brightness: +global.brightness.toFixed(3),
     },
-    model: "Ensemble (RF + XGBoost + Decision Tree)",
+    model: "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale)",
     explain: {
       subModels,
       contributions,
       features: global,
     },
+    scaleEstimate: +scale.toFixed(3),
+    personsPerSqm: personsPerSqm ?? undefined,
+    occupancy: occupancy ?? undefined,
+    losGrade: los?.grade,
+    losLabel: los?.label,
+    context: sc && hasContext(sc) ? sc : undefined,
   };
 }
+
 
 export async function analyzeFile(
   file: File,
   dataUrl: string,
+  context?: SceneContext,
 ): Promise<Analysis> {
   const isVideo = file.type.startsWith("video/");
   let source: HTMLCanvasElement;
@@ -355,5 +555,7 @@ export async function analyzeFile(
     fileName: file.name,
     fileType: isVideo ? "video" : "image",
     dataUrl,
+    context,
   });
 }
+

@@ -43,7 +43,15 @@ export interface Analysis {
   aiDescription?: string;
   aiConfidence?: number;
   aiDensity?: RiskLevel;
+  // Scene-context calibration (operator-entered text data).
+  scaleEstimate?: number;
+  personsPerSqm?: number;
+  occupancy?: number;
+  losGrade?: "A" | "B" | "C" | "D" | "E" | "F";
+  losLabel?: string;
+  context?: import("./context").SceneContext;
 }
+
 
 export interface User {
   email: string;
