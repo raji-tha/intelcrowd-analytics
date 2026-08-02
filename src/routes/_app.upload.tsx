@@ -577,6 +577,54 @@ function UploadPage() {
             ))}
           </div>
 
+          {(result.personsPerSqm != null ||
+            result.occupancy != null ||
+            result.context) && (
+            <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 text-sm grid gap-2">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                Context-calibrated metrics
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-1">
+                {result.personsPerSqm != null && (
+                  <span>
+                    <strong>{result.personsPerSqm}</strong> persons/m²
+                  </span>
+                )}
+                {result.losGrade && (
+                  <span>
+                    Fruin LOS <strong>{result.losGrade}</strong> — {result.losLabel}
+                  </span>
+                )}
+                {result.occupancy != null && (
+                  <span>
+                    Occupancy <strong>{Math.round(result.occupancy * 100)}%</strong> of
+                    capacity
+                  </span>
+                )}
+                {result.scaleEstimate != null && (
+                  <span className="text-muted-foreground">
+                    scale est. {result.scaleEstimate}
+                  </span>
+                )}
+              </div>
+              {result.context && (
+                <div className="text-xs text-muted-foreground">
+                  {[
+                    result.context.venue,
+                    EVENT_TYPES.find((e) => e.id === result.context!.eventType)?.label,
+                    result.context.timeOfDay,
+                    result.context.weather,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {result.context.notes && <div className="mt-1">{result.context.notes}</div>}
+                </div>
+              )}
+            </div>
+          )}
+
+
+
           {(result.model || result.confidence != null || result.features) && (
             <div className="rounded-lg border border-border p-4 bg-background/60 text-xs text-muted-foreground grid gap-1">
               {result.model && (
