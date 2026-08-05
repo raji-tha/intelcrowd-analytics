@@ -19,6 +19,7 @@ import { analyzeCanvas, analyzeFile, fileToDataUrl } from "@/lib/analyze";
 import { saveAnalysis, updateAnalysis, type Analysis } from "@/lib/store";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Heatmap } from "@/components/Heatmap";
+import { AlertPanel } from "@/components/AlertPanel";
 import { generateReportPdf } from "@/lib/pdf";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeWithVision } from "@/lib/vision.functions";
@@ -642,6 +643,8 @@ function UploadPage() {
               )}
             </div>
           )}
+
+          <AlertPanel analysis={result} />
 
           <div>
             <div className="font-semibold mb-2 text-sm">Recommendations</div>

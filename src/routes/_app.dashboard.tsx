@@ -16,6 +16,7 @@ import {
 import { StatCard } from "@/components/StatCard";
 import { RiskBadge } from "@/components/RiskBadge";
 import { Heatmap } from "@/components/Heatmap";
+import { AlertPanel } from "@/components/AlertPanel";
 
 
 export const Route = createFileRoute("/_app/dashboard")({
@@ -110,6 +111,8 @@ function Dashboard() {
               </div>
             </div>
           </div>
+
+          <AlertPanel analysis={latest} />
 
           <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
             <div className="font-semibold mb-3">Recommendations</div>
