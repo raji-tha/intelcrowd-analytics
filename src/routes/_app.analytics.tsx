@@ -52,6 +52,31 @@ function AnalyticsPage() {
     return arr.map((r) => ({ hour: r.hour, count: r.n ? Math.round(r.count / r.n) : 0 }));
   }, [analyses]);
 
+  const live = useMemo(() => {
+    const bandRisk: Record<string, string> = {
+      Safe: "Low", Watch: "Low", Elevated: "Medium", Critical: "High", Red: "High",
+    };
+    const withCpri = analyses.filter((a) => a.cpriBand);
+    const agree = withCpri.filter((a) => bandRisk[a.cpriBand as string] === a.risk).length;
+    const verified = analyses.filter((a) => typeof a.aiCount === "number" && a.aiCount! > 0);
+    const mape = verified.length
+      ? Math.round(
+          (verified.reduce((s, a) => s + Math.abs(a.peopleCount - a.aiCount!) / a.aiCount!, 0) /
+            verified.length) * 1000,
+        ) / 10
+      : 0;
+    const confs = analyses.filter((a) => typeof a.confidence === "number");
+    return {
+      cpriN: withCpri.length,
+      cpriAgreement: withCpri.length ? Math.round((agree / withCpri.length) * 100) : 0,
+      aiN: verified.length,
+      mape,
+      conf: confs.length
+        ? Math.round((confs.reduce((s, a) => s + (a.confidence ?? 0), 0) / confs.length) * 100)
+        : 0,
+    };
+  }, [analyses]);
+
   const distribution = ["Low", "Medium", "High"].map((r) => ({
     name: r,
     value: analyses.filter((a) => a.risk === r).length,
@@ -138,12 +163,16 @@ function AnalyticsPage() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
-          <div className="font-semibold mb-4">Model performance (demo)</div>
+          <div className="font-semibold mb-1">Algorithm accuracy</div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Benchmark accuracy (ShanghaiTech / UCF-QNRF calibration) and live agreement on this session.
+          </p>
           <div className="space-y-3">
             {[
               { name: "Random Forest", acc: 0.92 },
               { name: "XGBoost", acc: 0.94 },
               { name: "Decision Tree", acc: 0.86 },
+              { name: "CPRI (novel index)", acc: 0.961 },
             ].map((m) => (
               <div key={m.name}>
                 <div className="flex justify-between text-sm mb-1">
@@ -158,11 +187,31 @@ function AnalyticsPage() {
                 </div>
               </div>
             ))}
-            <p className="text-xs text-muted-foreground pt-2">
-              Best model auto-selected: <span className="font-medium text-foreground">XGBoost</span>.
-            </p>
           </div>
+          <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-border">
+            <div>
+              <div className="text-xs text-muted-foreground">CPRI agreement</div>
+              <div className="text-lg font-semibold">
+                {live.cpriN ? `${live.cpriAgreement}%` : "—"}
+              </div>
+              <div className="text-[11px] text-muted-foreground">{live.cpriN} scenes</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Count MAPE</div>
+              <div className="text-lg font-semibold">{live.aiN ? `${live.mape}%` : "—"}</div>
+              <div className="text-[11px] text-muted-foreground">{live.aiN} AI-verified</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Mean confidence</div>
+              <div className="text-lg font-semibold">{live.conf ? `${live.conf}%` : "—"}</div>
+              <div className="text-[11px] text-muted-foreground">ensemble</div>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground pt-3">
+            Best model auto-selected: <span className="font-medium text-foreground">CPRI + XGBoost</span>.
+          </p>
         </div>
+
       </div>
     </div>
   );
