@@ -63,12 +63,32 @@ function MonitorPage() {
             <AlertTriangle className="size-4" /> Active alerts
           </div>
           {breaches.map((a) => (
-            <div key={a.id} className="flex items-center justify-between gap-3 text-sm py-1">
-              <span className="truncate">{a.fileName}</span>
-              <RiskBadge level={a.risk} />
-              <span className="font-semibold tabular-nums">{a.riskScore}/100</span>
+            <div key={a.id} className="py-1 space-y-1">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate">{a.fileName}</span>
+                <RiskBadge level={a.risk} />
+                <span className="font-semibold tabular-nums">{a.riskScore}/100</span>
+                {a.cpri != null && (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    CPRI {a.cpri} · {a.cpriBand}
+                  </span>
+                )}
+              </div>
+              {a.alerts && a.alerts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {a.alerts.slice(0, 6).map((al) => (
+                    <span
+                      key={al}
+                      className="px-2 py-0.5 rounded-full text-[11px] border border-destructive/40 bg-card text-destructive"
+                    >
+                      {al}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
+
         </div>
       )}
 

@@ -71,6 +71,40 @@ export function generateReportPdf(a: Analysis) {
     y += 16;
   });
 
+  // jsPDF core fonts cannot render emoji glyphs — strip them for the report.
+  const plain = (s: string) =>
+    s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2194}-\u{21AA}]/gu, "").trim();
+
+  if (a.cpri != null) {
+    y += 12;
+    brk();
+    doc.setFontSize(14);
+    doc.setTextColor(20);
+    doc.text("Crowd Pressure & Risk Index (CPRI)", 40, y);
+    y += 8;
+    doc.line(40, y, w - 40, y);
+    y += 20;
+    doc.setFontSize(11);
+    doc.text(`CPRI: ${a.cpri}/100  —  Band: ${a.cpriBand ?? "-"}`, 40, y);
+    y += 16;
+    if (a.cpriSub) {
+      brk();
+      doc.setTextColor(90);
+      doc.text(
+        `Sub-indices — density ${a.cpriSub.density}, turbulence ${a.cpriSub.turbulence}, egress ${a.cpriSub.egress}, occupancy ${a.cpriSub.occupancy}`,
+        40,
+        y,
+      );
+      doc.setTextColor(20);
+      y += 18;
+    }
+    (a.alerts ?? []).forEach((al) => {
+      brk();
+      doc.text(`• ${plain(al)}`, 48, y);
+      y += 14;
+    });
+  }
+
   y += 12;
   brk();
   doc.setFontSize(14);
@@ -82,10 +116,11 @@ export function generateReportPdf(a: Analysis) {
   doc.setTextColor(20);
   (a.recommendations ?? []).forEach((r, i) => {
     brk();
-    const lines = doc.splitTextToSize(`${i + 1}. ${r}`, w - 80);
+    const lines = doc.splitTextToSize(`${i + 1}. ${plain(r)}`, w - 80);
     doc.text(lines, 40, y);
     y += lines.length * 14 + 4;
   });
+
 
   doc.setFontSize(9);
   doc.setTextColor(140);
