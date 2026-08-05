@@ -50,7 +50,13 @@ export interface Analysis {
   losGrade?: "A" | "B" | "C" | "D" | "E" | "F";
   losLabel?: string;
   context?: import("./context").SceneContext;
+  // CPRI — Crowd Pressure & Risk Index (novel algorithm).
+  cpri?: number;
+  cpriBand?: import("./alerts").CpriBand;
+  cpriSub?: { density: number; turbulence: number; egress: number; occupancy: number };
+  alerts?: string[];
 }
+
 
 
 export interface User {
