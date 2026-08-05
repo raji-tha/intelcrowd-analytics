@@ -1,4 +1,5 @@
 import type { Analysis, RiskLevel } from "./store";
+import { computeCpri, buildAlerts, ALERT_ACTIONS } from "./alerts";
 import {
   EVENT_TYPES,
   fruinLos,
@@ -437,7 +438,6 @@ export async function analyzeCanvas(
   }
   fused = Math.max(0, Math.min(1, fused + eventRisk * 0.5));
 
-  const risk = classifyScore(fused);
   const density = +(peopleCount / ((W * H) / 10000)).toFixed(2);
   const densityLevel: RiskLevel =
     personsPerSqm != null
