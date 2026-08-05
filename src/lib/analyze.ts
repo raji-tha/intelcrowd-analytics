@@ -560,6 +560,10 @@ export async function analyzeCanvas(
     losGrade: los?.grade,
     losLabel: los?.label,
     context: sc && hasContext(sc) ? sc : undefined,
+    cpri: cpriResult.cpri,
+    cpriBand: cpriResult.band,
+    cpriSub: cpriResult.sub,
+    alerts,
   };
 }
 
