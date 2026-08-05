@@ -484,7 +484,37 @@ export async function analyzeCanvas(
   const expectedCount = Math.round(peopleCount * growth);
   const expectedRisk = classifyScore(Math.min(1, fused * growth * 0.95));
 
-  const recommendations = recommendationsFor(risk);
+  // ---- CPRI: Crowd Pressure & Risk Index (novel compound algorithm) ----
+  const cpriResult = computeCpri({
+    personsPerSqm,
+    occupancy,
+    people: peopleCount,
+    exits: sc?.exits ?? null,
+    orient: global.orient,
+    lbp: global.lbp,
+    visionScore: fused,
+    growth,
+  });
+
+  const exitsDeficit =
+    !!sc?.exits && sc.exits > 0 && peopleCount / (sc.exits * 250) > 0.8;
+  const alerts = buildAlerts({
+    risk: classifyScore(fused),
+    cpri: cpriResult.cpri,
+    band: cpriResult.band,
+    personsPerSqm,
+    occupancy,
+    losGrade: los?.grade,
+    exitsDeficit,
+    escalating: growth > 1.15,
+    people: peopleCount,
+  });
+
+  const risk = classifyScore(fused);
+  const recommendations = [
+    ...alerts.map((a) => ALERT_ACTIONS[a] ?? a),
+    ...recommendationsFor(risk),
+  ];
   if (los && (los.grade === "E" || los.grade === "F")) {
     recommendations.unshift(
       `Measured density ${personsPerSqm} persons/m² is Fruin LOS ${los.grade} (${los.label}) — restrict inflow now.`,
@@ -495,6 +525,7 @@ export async function analyzeCanvas(
       `Area is at ${Math.round(occupancy * 100)}% of stated safe capacity.`,
     );
   }
+
 
   return {
     id: crypto.randomUUID(),
