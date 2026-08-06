@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% block title %}CrowdVision AI{% endblock %}</title>
+<meta name="description" content="{% block description %}CrowdVision AI analyses crowd images and video to estimate counts, grade density with Fruin LOS, compute the CPRI pressure index and issue safety recommendations.{% endblock %}" />
+<link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="dot"></span> CrowdVision <b>AI</b></a>
+  <nav>
+    <a href="/dashboard" class="{{ 'active' if page=='dashboard' }}">Dashboard</a>
+    <a href="/upload" class="{{ 'active' if page=='upload' }}">Analyze</a>
+    <a href="/analytics" class="{{ 'active' if page=='analytics' }}">Analytics</a>
+    <a href="/explain" class="{{ 'active' if page=='explain' }}">Explain</a>
+    <a href="/reports" class="{{ 'active' if page=='reports' }}">Reports</a>
+  </nav>
+</header>
+<main class="wrap">{% block content %}{% endblock %}</main>
+<footer class="foot">CrowdVision AI &middot; Ensemble (RF + XGBoost + Decision Tree) + CPRI &middot; Fruin LOS calibrated</footer>
+<script src="/static/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
