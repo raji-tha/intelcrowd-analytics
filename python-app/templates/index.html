@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}CrowdVision AI - Intelligent Crowd Risk Prediction{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Intelligent crowd risk prediction and decision support</h1>
+  <p>Upload a crowd image or video clip. CrowdVision estimates the crowd size, grades physical density against the Fruin Level-of-Service scale, computes the CPRI pressure index and returns field-ready safety actions.</p>
+  <a class="btn primary" href="/upload">Analyze a scene</a>
+  <a class="btn" href="/dashboard">Open dashboard</a>
+</section>
+<section class="grid three">
+  <div class="card"><h3>Multi-descriptor vision</h3><p>Sobel-lite edges, luminance entropy, HOG-lite orientation isotropy, LBP micro-texture and a multi-scale pyramid scale estimate.</p></div>
+  <div class="card"><h3>Ensemble classification</h3><p>Random Forest, XGBoost and Decision Tree analogues vote with accuracy-matched weights, producing a calibrated risk score and confidence.</p></div>
+  <div class="card"><h3>CPRI decision layer</h3><p>A weighted geometric mean of density stress, kinetic turbulence, egress deficit and occupancy load drives banded emergency alerts.</p></div>
+</section>
+{% endblock %}
