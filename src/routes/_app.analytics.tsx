@@ -179,18 +179,13 @@ function AnalyticsPage() {
               </div>
             ))}
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-border">
+          <div className="mt-4 grid grid-cols-2 gap-3 pt-4 border-t border-border">
             <div>
               <div className="text-xs text-muted-foreground">CPRI agreement</div>
               <div className="text-lg font-semibold">
                 {live.cpriN ? `${live.cpriAgreement}%` : "—"}
               </div>
               <div className="text-[11px] text-muted-foreground">{live.cpriN} scenes</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Count MAPE</div>
-              <div className="text-lg font-semibold">{live.aiN ? `${live.mape}%` : "—"}</div>
-              <div className="text-[11px] text-muted-foreground">{live.aiN} AI-verified</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Mean confidence</div>
