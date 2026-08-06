@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Explainability - CrowdVision AI{% endblock %}
+{% block content %}
+<h1 class="page-title">Explainability</h1>
+<p class="sub">Feature contributions and sub-model votes for the most recent analysis.</p>
+<div id="explain" class="card">No analyses yet. <a href="/upload">Analyze a scene</a>.</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/explain.js"></script>{% endblock %}
