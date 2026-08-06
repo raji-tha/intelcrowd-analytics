@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Reports - CrowdVision AI{% endblock %}
+{% block content %}
+<h1 class="page-title">Reports</h1>
+<p class="sub">Search, filter and export every stored assessment.</p>
+<div class="toolbar">
+  <input id="q" placeholder="Search file or venue..." />
+  <select id="risk"><option value="">All risk levels</option><option>Low</option><option>Medium</option><option>High</option></select>
+  <select id="sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="people">Most people</option><option value="cpri">Highest CPRI</option></select>
+  <a class="btn" href="/api/export.csv">Export CSV</a>
+  <button class="btn danger" id="clear">Clear all</button>
+</div>
+<div id="list" class="list"></div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/reports.js"></script>{% endblock %}
