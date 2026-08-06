@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Analyze a scene - CrowdVision AI{% endblock %}
+{% block content %}
+<h1 class="page-title">Analyze</h1>
+<p class="sub">Upload an image or short video clip and add scene context text data for real-world density calibration.</p>
+
+<div class="grid two">
+  <form id="analyze-form" class="card" enctype="multipart/form-data">
+    <h3>1. Frame</h3>
+    <input type="file" id="file" name="file" accept="image/*,video/*" required />
+    <img id="preview" class="preview" alt="" hidden />
+
+    <h3>2. Scene context (text data)</h3>
+    <label>Venue / location <input name="venue" placeholder="North Gate, City Stadium" /></label>
+    <label>Event type
+      <select name="eventType">
+        <option value="unspecified">Unspecified</option>
+        <option value="religious">Religious gathering</option>
+        <option value="concert">Concert / festival</option>
+        <option value="sports">Sports event</option>
+        <option value="transit">Transit hub</option>
+        <option value="market">Market / bazaar</option>
+        <option value="protest">Protest / rally</option>
+        <option value="street">Street / public space</option>
+      </select>
+    </label>
+    <div class="row">
+      <label>Observed area (m²) <input name="areaSqm" type="number" min="1" step="1" placeholder="450" /></label>
+      <label>Safe capacity <input name="capacity" type="number" min="1" step="1" placeholder="900" /></label>
+      <label>Exits <input name="exits" type="number" min="1" step="1" placeholder="4" /></label>
+    </div>
+    <div class="row">
+      <label>Time of day <input name="timeOfDay" placeholder="18:30 peak hour" /></label>
+      <label>Weather <input name="weather" placeholder="Clear, 31°C" /></label>
+    </div>
+    <label>Operator notes <textarea name="notes" rows="3" placeholder="Queue building at gate 3..."></textarea></label>
+
+    <button class="btn primary" type="submit">Run analysis</button>
+    <span id="status" class="status"></span>
+  </form>
+
+  <div id="result" class="card" hidden></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/upload.js"></script>{% endblock %}
