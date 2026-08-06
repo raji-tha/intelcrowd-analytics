@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - CrowdVision AI{% endblock %}
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+<p class="sub">Live operational picture across all captured analyses.</p>
+<div id="stats" class="grid four"></div>
+<div class="card"><h3>Latest scene</h3><div id="latest">No analyses yet. <a href="/upload">Analyze a scene</a>.</div></div>
+<div class="card"><h3>Recent activity</h3><div id="recent"></div></div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js"></script>{% endblock %}
