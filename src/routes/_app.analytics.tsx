@@ -58,19 +58,10 @@ function AnalyticsPage() {
     };
     const withCpri = analyses.filter((a) => a.cpriBand);
     const agree = withCpri.filter((a) => bandRisk[a.cpriBand as string] === a.risk).length;
-    const verified = analyses.filter((a) => typeof a.aiCount === "number" && a.aiCount! > 0);
-    const mape = verified.length
-      ? Math.round(
-          (verified.reduce((s, a) => s + Math.abs(a.peopleCount - a.aiCount!) / a.aiCount!, 0) /
-            verified.length) * 1000,
-        ) / 10
-      : 0;
     const confs = analyses.filter((a) => typeof a.confidence === "number");
     return {
       cpriN: withCpri.length,
       cpriAgreement: withCpri.length ? Math.round((agree / withCpri.length) * 100) : 0,
-      aiN: verified.length,
-      mape,
       conf: confs.length
         ? Math.round((confs.reduce((s, a) => s + (a.confidence ?? 0), 0) / confs.length) * 100)
         : 0,
