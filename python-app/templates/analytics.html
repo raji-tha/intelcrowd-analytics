@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Analytics - CrowdVision AI{% endblock %}
+{% block content %}
+<h1 class="page-title">Analytics</h1>
+<p class="sub">Trends, risk distribution and algorithm accuracy.</p>
+<div id="stats" class="grid four"></div>
+<div class="grid two">
+  <div class="card"><h3>Daily average crowd</h3><canvas id="chart-day" height="200"></canvas></div>
+  <div class="card"><h3>Average crowd by hour</h3><canvas id="chart-hour" height="200"></canvas></div>
+  <div class="card"><h3>Risk distribution</h3><div id="dist"></div></div>
+  <div class="card">
+    <h3>Algorithm accuracy</h3>
+    <p class="hint">Benchmark accuracy (ShanghaiTech / UCF-QNRF calibration) and live agreement for this deployment.</p>
+    <div id="acc"></div>
+    <div id="live-acc" class="grid two tight"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/analytics.js"></script>{% endblock %}
