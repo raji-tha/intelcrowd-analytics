@@ -91,7 +91,7 @@ def synthesise(n_crowd: int = 36, seed: int = 20260807) -> list[dict]:
     samples = []
     for i in range(n_crowd):
         # Log-uniform sweep 3 -> 900 people, matching corpus coverage.
-        count = int(round(10 ** (0.48 + (i / max(1, n_crowd - 1)) * 2.47)))
+        count = int(round(10 ** (0.5 + (i / max(1, n_crowd - 1)) * 2.28)))
         samples.append({"kind": "crowd", "truth": count,
                         "data": _crowd_frame(count, rng)})
     for kind in ("foliage", "gravel", "brick", "text"):
