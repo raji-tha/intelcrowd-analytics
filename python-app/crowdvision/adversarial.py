@@ -133,7 +133,7 @@ def critique(f: Features, people: int, megapixels: float) -> Critic:
 
     # Trust gain: the critic only intervenes when it is itself confident
     # (recognisable crowd texture) and the disagreement is meaningful.
-    gain = 0.92 * cw * min(1.0, disagree / 0.8)
+    gain = min(0.95, 1.55 * cw) * min(1.0, disagree / 0.8)
     target = 10.0 ** (lg + gain * (lm - lg))
     adjust = target / max(1.0, people) if people > 0 else 1.0
 
