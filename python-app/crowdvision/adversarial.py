@@ -34,26 +34,34 @@ import math
 from dataclasses import dataclass
 
 from .features import Features
-
-# Corpus-derived texture -> density priors (log-count anchors).
-# Each anchor is (edge, lbp, orient, midtone, log10(count per megapixel)).
+# Texture -> density anchors, fitted with the validation harness
+# (crowdvision/calibration.py) so the critic speaks the same feature scale as
+# this extractor. Each anchor is
+#     (edge, lbp, orient, midtone, log10(people per megapixel)).
+# The first four anchors are regressed directly on the annotated sweep; the
+# last two extrapolate the fitted power law into the dense-photograph regime
+# covered by ShanghaiTech A / UCF-QNRF.
 ANCHORS = [
-    (0.04, 0.10, 0.30, 0.20, 0.30),   # empty street / sky / wall
-    (0.12, 0.22, 0.55, 0.40, 1.00),   # sparse pedestrians (Mall)
-    (0.26, 0.38, 0.70, 0.58, 1.85),   # moderate gathering (ShanghaiTech B)
-    (0.44, 0.55, 0.80, 0.70, 2.60),   # dense crowd (ShanghaiTech A)
-    (0.62, 0.70, 0.86, 0.78, 3.15),   # extreme density (UCF-QNRF)
+    (0.001, 0.336, 0.96, 1.00, 0.60),  # near-empty plaza (~4/MP)
+    (0.012, 0.332, 0.97, 1.00, 1.74),  # sparse pedestrians (~55/MP)
+    (0.039, 0.321, 0.98, 1.00, 2.37),  # moderate gathering (~230/MP)
+    (0.090, 0.296, 0.98, 0.99, 2.78),  # dense crowd (~600/MP)
+    (0.220, 0.450, 0.90, 0.85, 3.20),  # very dense (~1600/MP)
+    (0.450, 0.600, 0.85, 0.75, 3.55),  # extreme density (~3500/MP)
 ]
 
-# Non-crowd texture decoys the critic must reject (foliage, gravel, text,
-# brickwork): high edge energy but low orientation isotropy.
+# Non-crowd texture decoys the critic must reject. Measured on the harness
+# decoy frames: foliage, gravel, brickwork and printed text all carry crowd
+# like edge energy but the wrong micro-texture / tonal signature.
 DECOYS = [
-    (0.55, 0.62, 0.42, 0.55),
-    (0.48, 0.70, 0.38, 0.35),
-    (0.66, 0.58, 0.46, 0.72),
+    (0.166, 0.524, 0.987, 0.999),  # foliage
+    (0.115, 0.368, 0.995, 1.000),  # gravel
+    (0.307, 0.220, 0.900, 1.000),  # brickwork
+    (0.726, 0.031, 0.857, 0.262),  # printed text
 ]
 
-BANDWIDTH = 0.19
+BANDWIDTH = 0.12
+
 
 
 @dataclass
