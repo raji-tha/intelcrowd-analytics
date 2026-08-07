@@ -40,23 +40,29 @@ def _encode(arr: np.ndarray) -> bytes:
 
 
 def _crowd_frame(count: int, rng: random.Random) -> bytes:
-    """Procedural crowd: perspective-scaled head blobs on a ground plane."""
-    canvas = np.full((H, W), 132.0)
-    canvas += np.array([[(y / H) * 34 for _ in range(W)] for y in range(H)])
+    """
+    Procedural crowd: perspective-scaled heads rendered as hard-edged
+    ellipses with shoulder shading, so the frame carries the gradient and
+    micro-texture energy a real crowd photograph carries.
+    """
+    canvas = np.full((H, W), 128.0)
     yy, xx = np.mgrid[0:H, 0:W]
-    for _ in range(count):
-        cy = rng.uniform(0.18 * H, H)
-        cx = rng.uniform(0, W)
+    canvas += (yy / H) * 30.0
+    order = sorted((rng.uniform(0.16 * H, H) for _ in range(count)))
+    for cy in order:  # painter's algorithm: far heads first, near occlude
+        cx = rng.uniform(-4, W + 4)
         depth = cy / H
-        r = max(1.2, 1.4 + depth * 5.5)
-        tone = rng.uniform(-70, 70)
-        blob = np.exp(-(((xx - cx) ** 2) / (2 * r * r) + ((yy - cy) ** 2) / (2 * (r * 1.35) ** 2)))
-        canvas += tone * blob
-        canvas -= 26 * np.exp(
-            -(((xx - cx) ** 2) / (2 * (r * 1.1) ** 2) + ((yy - cy - r * 1.6) ** 2) / (2 * (r * 0.8) ** 2))
-        )
-    canvas += np.random.normal(0, 5.5, canvas.shape)
+        r = max(1.0, 0.9 + depth * 5.0)
+        tone = 128 + rng.choice([-1, 1]) * rng.uniform(48, 92)
+        head = (((xx - cx) / r) ** 2 + ((yy - cy) / (r * 1.2)) ** 2) <= 1.0
+        canvas[head] = tone
+        body = (((xx - cx) / (r * 1.9)) ** 2
+                + ((yy - cy - r * 2.6) / (r * 2.2)) ** 2) <= 1.0
+        canvas[body] = 0.55 * canvas[body] + 0.45 * (tone * 0.72)
+    canvas += np.random.normal(0, 4.0, canvas.shape)
     return _encode(canvas)
+
+
 
 
 def _decoy_frame(kind: str, rng: random.Random) -> bytes:
