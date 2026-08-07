@@ -558,7 +558,10 @@ export async function analyzeCanvas(
       midtone: +global.midtone.toFixed(3),
       brightness: +global.brightness.toFixed(3),
     },
-    model: "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale)",
+    model:
+      "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale) + Adversarial Density Critic + CPRI",
+    adversarial: critic,
+
     explain: {
       subModels,
       contributions,
