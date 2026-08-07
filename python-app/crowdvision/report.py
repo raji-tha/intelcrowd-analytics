@@ -79,6 +79,18 @@ def build_pdf(a: dict) -> bytes:
                 f"Occupancy load {sub.get('occupancy')}", body),
         ]
 
+    adv = a.get("adversarial") or {}
+    if adv:
+        story += [
+            Paragraph("Adversarial density critic", h2),
+            Paragraph(
+                f"Realism D(x,n) {adv.get('realism')} &nbsp; | &nbsp; "
+                f"Crowd likelihood {adv.get('crowdness')} &nbsp; | &nbsp; "
+                f"Critic prior count {adv.get('priorCount')} &nbsp; | &nbsp; "
+                f"Applied correction x{adv.get('adjust')}", body),
+        ]
+
+
     if a.get("alerts"):
         story += [Paragraph("Active alerts", h2)]
         story += [Paragraph(f"- {_clean(x)}", body) for x in a["alerts"]]
