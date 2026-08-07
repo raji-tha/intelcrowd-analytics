@@ -55,6 +55,15 @@ export interface Analysis {
   cpriBand?: import("./alerts").CpriBand;
   cpriSub?: { density: number; turbulence: number; egress: number; occupancy: number };
   alerts?: string[];
+  // Adversarial Density Critic (GAN-style discriminator).
+  adversarial?: {
+    realism: number;
+    crowdness: number;
+    priorCount: number;
+    adjust: number;
+    gain: number;
+  };
+
 }
 
 
