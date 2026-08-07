@@ -170,6 +170,26 @@ def api_analytics():
     })
 
 
+_VALIDATION_CACHE: dict = {}
+
+
+@app.get("/api/validate")
+def api_validate():
+    """
+    Reproducible benchmark run of the full pipeline over the built-in
+    synthetic validation set (see crowdvision/calibration.py).
+    """
+    if not _VALIDATION_CACHE:
+        from crowdvision.calibration import validate
+
+        try:
+            _VALIDATION_CACHE.update(validate())
+        except Exception as exc:  # noqa: BLE001
+            return jsonify({"error": str(exc)}), 500
+    return jsonify(_VALIDATION_CACHE)
+
+
+
 @app.get("/api/export.csv")
 def api_export_csv():
     items = list_analyses(1000)

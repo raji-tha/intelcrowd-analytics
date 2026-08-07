@@ -25,5 +25,26 @@
 
   document.getElementById("live-acc").innerHTML =
     statCard("CPRI agreement", d.cpriAgreement != null ? `${d.cpriAgreement}%` : "—", `${d.cpriScenes || 0} scenes`) +
-    statCard("Mean confidence", d.meanConfidence != null ? `${d.meanConfidence}%` : "—", "ensemble");
+    statCard("Mean confidence", d.meanConfidence != null ? `${d.meanConfidence}%` : "—", "ensemble + critic");
+
+  // Reproducible benchmark on the built-in synthetic validation set.
+  const box = document.getElementById("bench");
+  if (box) {
+    box.innerHTML = `<p class="hint">Running benchmark…</p>`;
+    try {
+      const b = await (await fetch("/api/validate")).json();
+      if (b.error) throw new Error(b.error);
+      box.innerHTML = `<div class="grid two tight">
+        ${statCard("Counting MAE", b.mae, `${b.samples} scenes`)}
+        ${statCard("RMSE", b.rmse, "count error")}
+        ${statCard("GAME(1)", b.game1, "localisation-aware")}
+        ${statCard("Density accuracy", `${b.accuracy}%`, "3-class Low/Med/High")}
+        ${statCard("Decoy rejection", `${b.decoyPrecision}%`, `${b.decoys} non-crowd frames`)}
+        ${statCard("Seed", b.seed, "reproducible")}
+      </div>`;
+    } catch (e) {
+      box.innerHTML = `<p class="hint">Benchmark unavailable: ${e.message}</p>`;
+    }
+  }
 })();
+

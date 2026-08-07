@@ -14,14 +14,20 @@ from datetime import datetime, timezone
 
 import numpy as np
 
+from .adversarial import refine
 from .context import event_risk, fruin_los, has_context, normalise_context
 from .cpri import ALERT_ACTIONS, build_alerts, compute_cpri
 from .ensemble import classify, ensemble_score, estimate_people
 from .features import extract_features, estimate_scale, load_gray
 
+
 GRID = 3
 ZONES = GRID * GRID
-MODEL_NAME = "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale) + CPRI"
+MODEL_NAME = (
+    "Ensemble v3 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale) "
+    "+ Adversarial Density Critic + CPRI"
+)
+
 
 
 def _recommendations_for(risk: str) -> list[str]:
@@ -58,6 +64,10 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
     ens = ensemble_score(global_f)
     score = ens.score
     people = estimate_people(score, area, scale, global_f)
+
+    # ---- adversarial density critic (GAN-style discriminator pass) ----
+    people, score, critic = refine(global_f, people, score, area / 1_000_000)
+
 
     # ---- scene-context calibration (operator text data) ----
     sc = normalise_context(context)
@@ -156,11 +166,21 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
         "recommendations": recommendations,
         "alerts": alerts,
         "createdAt": datetime.now(timezone.utc).isoformat(),
-        "confidence": round(ens.confidence * 100, 1),
+        "confidence": round(
+            min(99.0, ens.confidence * 100 * (0.75 + 0.25 * critic.realism)), 1
+        ),
         "features": global_f.as_dict(),
         "explain": {"subModels": ens.sub_models,
                     "contributions": ens.contributions},
+        "adversarial": {
+            "realism": critic.realism,
+            "crowdness": critic.crowdness,
+            "priorCount": critic.prior_count,
+            "adjust": critic.adjust,
+            "gain": critic.gain,
+        },
         "model": MODEL_NAME,
+
         "scaleEstimate": round(scale, 3),
         "personsPerSqm": persons_per_sqm,
         "occupancy": occupancy,

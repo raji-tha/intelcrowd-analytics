@@ -19,5 +19,16 @@
       <tr><td>XGBoost</td><td>${sm.xgb}</td><td>0.46</td></tr>
       <tr><td>Decision Tree</td><td>${sm.dt}</td><td>0.24</td></tr></table>
     <h3>CPRI sub-indices</h3>
-    <table>${Object.entries(a.cpriSub || {}).map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("")}</table>`;
+    <table>${Object.entries(a.cpriSub || {}).map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("")}</table>
+    ${a.adversarial ? `
+    <h3>Adversarial density critic (GAN-style discriminator)</h3>
+    <p class="hint">The critic judges whether the ensemble's count is plausible for the observed texture, and pulls it toward the corpus manifold in proportion to its own confidence.</p>
+    <table>
+      <tr><th>Realism D(x, n)</th><td>${a.adversarial.realism}</td></tr>
+      <tr><th>Crowd likelihood</th><td>${a.adversarial.crowdness}</td></tr>
+      <tr><th>Critic prior count</th><td>${a.adversarial.priorCount}</td></tr>
+      <tr><th>Applied correction</th><td>x${a.adversarial.adjust}</td></tr>
+      <tr><th>Trust gain</th><td>${a.adversarial.gain}</td></tr>
+    </table>` : ""}`;
 })();
+

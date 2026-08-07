@@ -1,5 +1,7 @@
 import type { Analysis, RiskLevel } from "./store";
 import { computeCpri, buildAlerts, ALERT_ACTIONS } from "./alerts";
+import { refine } from "./adversarial";
+
 import {
   EVENT_TYPES,
   fruinLos,
@@ -403,8 +405,16 @@ export async function analyzeCanvas(
   const full = ctx.getImageData(0, 0, W, H).data;
   const global = extractFeatures(full, W, H);
   const scale = estimateScale(toGray(full, W, H), W, H);
-  const { score, confidence, subModels, contributions } = ensembleScore(global);
-  let peopleCount = estimatePeople(score, W * H, scale, global);
+  const { score: rawScore, confidence, subModels, contributions } =
+    ensembleScore(global);
+  const rawCount = estimatePeople(rawScore, W * H, scale, global);
+  // ---- adversarial density critic (GAN-style discriminator) ----
+  const refined = refine(global, rawCount, rawScore, (W * H) / 1e6);
+  const score = refined.score;
+  let peopleCount = refined.people;
+  const critic = refined.critic;
+
+
 
   // ---- scene-context calibration (operator text data) ----
   const sc = meta.context;
@@ -548,7 +558,10 @@ export async function analyzeCanvas(
       midtone: +global.midtone.toFixed(3),
       brightness: +global.brightness.toFixed(3),
     },
-    model: "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale)",
+    model:
+      "Ensemble v2 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale) + Adversarial Density Critic + CPRI",
+    adversarial: critic,
+
     explain: {
       subModels,
       contributions,
