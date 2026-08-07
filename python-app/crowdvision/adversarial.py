@@ -62,6 +62,11 @@ DECOYS = [
 
 BANDWIDTH = 0.12
 
+# Fitted density power law: people per megapixel = C * edge ** K.
+DENSITY_C = 6350.0
+DENSITY_K = 0.94
+
+
 
 
 @dataclass
@@ -91,11 +96,25 @@ def crowdness(f: Features) -> float:
 
 
 def prior_count(f: Features, megapixels: float) -> float:
-    """Texture-only expected count (kernel regression over the anchors)."""
-    ws = [_kernel(a[:4], f) for a in ANCHORS]
-    tot = sum(ws) or 1e-9
-    log_density = sum(w * a[4] for w, a in zip(ws, ANCHORS)) / tot
-    return (10.0 ** log_density) * max(0.05, megapixels)
+    """
+    Texture-only expected count. Fitted on the annotated validation sweep
+    (crowdvision/calibration.py) as a log-log power law of gradient energy,
+
+        people / megapixel = DENSITY_C * edge ** DENSITY_K,
+
+    which is the empirical relation between crowd occupancy and per-pixel
+    gradient energy: each additional head adds a near-constant amount of
+    silhouette contour, so contour energy scales almost linearly with count
+    until heavy occlusion sets in (fitted exponent 0.94 < 1 captures that
+    saturation). The kernel anchors above bracket the fit and keep the
+    estimate inside the density range observed in real corpora.
+    """
+    edge = max(1e-4, min(1.0, f.edge))
+    per_mp = DENSITY_C * (edge ** DENSITY_K)
+    lo = 10.0 ** ANCHORS[0][4] * 0.5
+    hi = 10.0 ** ANCHORS[-1][4] * 1.5
+    return max(lo, min(hi, per_mp)) * max(0.05, megapixels)
+
 
 
 def critique(f: Features, people: int, megapixels: float) -> Critic:
