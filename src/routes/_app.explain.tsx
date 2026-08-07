@@ -199,6 +199,41 @@ function ExplainPage() {
               </div>
             </div>
 
+            {/* Adversarial density critic */}
+            {latest.adversarial && (
+              <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+                <div className="font-semibold mb-1">
+                  Adversarial density critic (GAN-style discriminator)
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  The critic scores how plausible the ensemble's count is for the observed
+                  texture, then pulls it toward the corpus density manifold in proportion to
+                  its own confidence.
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {(
+                    [
+                      ["Realism D(x, n)", latest.adversarial.realism],
+                      ["Crowd likelihood", latest.adversarial.crowdness],
+                      ["Critic prior count", latest.adversarial.priorCount],
+                      ["Applied correction", `×${latest.adversarial.adjust}`],
+                      ["Trust gain", latest.adversarial.gain],
+                    ] as const
+                  ).map(([label, v]) => (
+                    <div
+                      key={label}
+                      className="rounded-lg border border-border bg-muted/30 px-3 py-2"
+                    >
+                      <div className="text-xs text-muted-foreground">{label}</div>
+                      <div className="font-semibold tabular-nums">{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
+
             {/* Feature profile radar */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
               <div className="font-semibold mb-1">Feature profile</div>
