@@ -14,10 +14,12 @@ from datetime import datetime, timezone
 
 import numpy as np
 
+from .adversarial import refine
 from .context import event_risk, fruin_los, has_context, normalise_context
 from .cpri import ALERT_ACTIONS, build_alerts, compute_cpri
 from .ensemble import classify, ensemble_score, estimate_people
 from .features import extract_features, estimate_scale, load_gray
+
 
 GRID = 3
 ZONES = GRID * GRID
@@ -58,6 +60,10 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
     ens = ensemble_score(global_f)
     score = ens.score
     people = estimate_people(score, area, scale, global_f)
+
+    # ---- adversarial density critic (GAN-style discriminator pass) ----
+    people, score, critic = refine(global_f, people, score, area / 1_000_000)
+
 
     # ---- scene-context calibration (operator text data) ----
     sc = normalise_context(context)
