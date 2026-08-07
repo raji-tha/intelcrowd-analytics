@@ -29,7 +29,7 @@ import random
 import numpy as np
 from PIL import Image
 
-W = H = 320
+W = H = 960
 MEGAPIXELS = (W * H) / 1_000_000
 
 
