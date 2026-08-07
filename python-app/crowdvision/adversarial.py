@@ -114,21 +114,22 @@ def critique(f: Features, people: int, megapixels: float) -> Critic:
 
     # Trust gain: the critic only intervenes when it is itself confident
     # (recognisable crowd texture) and the disagreement is meaningful.
-    gain = 0.55 * cw * min(1.0, disagree / 0.9)
+    gain = 0.92 * cw * min(1.0, disagree / 0.8)
     target = 10.0 ** (lg + gain * (lm - lg))
     adjust = target / max(1.0, people) if people > 0 else 1.0
 
     # A confidently rejected scene (non-crowd texture) is suppressed.
-    if cw < 0.32:
-        adjust *= 0.45 + cw
+    if cw < 0.5:
+        adjust *= 0.25 + cw
 
     return Critic(
         realism=round(realism, 4),
         prior_count=round(mu, 1),
         crowdness=round(cw, 4),
-        adjust=round(max(0.25, min(2.4, adjust)), 4),
+        adjust=round(max(0.1, min(24.0, adjust)), 4),
         gain=round(gain, 4),
     )
+
 
 
 def refine(f: Features, people: int, score: float, megapixels: float):
