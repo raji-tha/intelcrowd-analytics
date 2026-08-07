@@ -200,7 +200,7 @@ function ExplainPage() {
             </div>
 
             {/* Adversarial density critic */}
-            {latest.adversarial && (
+            {analysis!.adversarial && (
               <div className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
                 <div className="font-semibold mb-1">
                   Adversarial density critic (GAN-style discriminator)
@@ -213,11 +213,11 @@ function ExplainPage() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   {(
                     [
-                      ["Realism D(x, n)", latest.adversarial.realism],
-                      ["Crowd likelihood", latest.adversarial.crowdness],
-                      ["Critic prior count", latest.adversarial.priorCount],
-                      ["Applied correction", `×${latest.adversarial.adjust}`],
-                      ["Trust gain", latest.adversarial.gain],
+                      ["Realism D(x, n)", analysis!.adversarial.realism],
+                      ["Crowd likelihood", analysis!.adversarial.crowdness],
+                      ["Critic prior count", analysis!.adversarial.priorCount],
+                      ["Applied correction", `×${analysis!.adversarial.adjust}`],
+                      ["Trust gain", analysis!.adversarial.gain],
                     ] as const
                   ).map(([label, v]) => (
                     <div
