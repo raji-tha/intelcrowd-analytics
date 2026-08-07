@@ -14,6 +14,12 @@
     <div id="acc"></div>
     <div id="live-acc" class="grid two tight"></div>
   </div>
+  <div class="card" style="grid-column:1/-1">
+    <h3>Reproducible benchmark — synthetic validation set</h3>
+    <p class="hint">Full pipeline (features → ensemble → adversarial density critic → CPRI) evaluated on procedurally generated crowd scenes with known ground-truth counts plus non-crowd decoy frames. Fixed seed, so the numbers reproduce exactly for reviewers.</p>
+    <div id="bench"></div>
+  </div>
 </div>
+
 {% endblock %}
 {% block scripts %}<script src="/static/js/analytics.js"></script>{% endblock %}
