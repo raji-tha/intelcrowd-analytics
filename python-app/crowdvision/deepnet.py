@@ -222,13 +222,14 @@ def infer(gray: np.ndarray, megapixels: float, ensemble_count: float) -> DeepRes
     )
 
 
-def fuse(ensemble_count: float, deep: DeepResult) -> int:
+def fuse(ensemble_count: float, deep: DeepResult, trust: float = 1.0) -> int:
     """
     Confidence-weighted log-space fusion of the hand-crafted ensemble count
     and the convolutional density count. The network gets more say when its
-    attention map is focused and it broadly agrees with the ensemble.
+    attention map is focused, it agrees with the ensemble, and the
+    adversarial critic considers the frame a genuine crowd (`trust`).
     """
-    w = 0.25 + 0.45 * deep.agreement * (0.5 + 0.5 * deep.focus)
+    w = 0.78 * (deep.agreement ** 1.5) * max(0.0, min(1.0, trust)) * (0.7 + 0.3 * deep.focus)
     lg = math.log10(max(1.0, ensemble_count))
     ld = math.log10(max(1.0, deep.count))
     return max(0, round(10 ** ((1 - w) * lg + w * ld)))
