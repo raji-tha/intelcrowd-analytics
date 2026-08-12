@@ -41,8 +41,9 @@ from dataclasses import dataclass
 import numpy as np
 
 NET_SIDE = 192          # working resolution of the network input
-GAMMA = 1.06            # density power law exponent (fitted)
-ALPHA = 0.0225          # density -> people scale (fitted, per megapixel)
+GAMMA = 2.049           # density power law exponent (fitted, log-log LSQ)
+ALPHA = 3.763e6         # density -> people scale (fitted at 0.92 MP)
+REF_MP = 0.9216         # calibration frame size in megapixels
 ATTN_TEMP = 0.65        # softmax temperature of the attention block
 
 
@@ -203,7 +204,7 @@ def infer(gray: np.ndarray, megapixels: float, ensemble_count: float) -> DeepRes
     weighted_mean = float((attn * zone_means).sum() * 9) / 9 if zone_means.size else mean
     energy = 0.6 * mean + 0.4 * weighted_mean
 
-    count = ALPHA * (energy ** GAMMA) * max(0.05, megapixels) * 1e6 / 1000.0
+    count = ALPHA * (max(1e-6, energy) ** GAMMA) * (max(0.05, megapixels) / REF_MP)
 
     focus = float(1 - (-(attn * np.log(attn + 1e-9)).sum() / math.log(9)))
     lg = math.log10(max(1.0, count))
