@@ -119,7 +119,7 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
     for i, s in enumerate(zone_scores):
         base_share = s / (zone_avg * ZONES)
         attn_share = deep.attention[i] if i < len(deep.attention) else 1 / ZONES
-        share = 0.7 * base_share + 0.3 * attn_share * ZONES / ZONES * ZONES / ZONES
+        share = 0.7 * base_share + 0.3 * (attn_share * ZONES)
         zones.append({"id": f"Z{i+1}", "count": max(0, round(people * share)),
                       "level": classify(s)})
     total = sum(z["count"] for z in zones) or 1
