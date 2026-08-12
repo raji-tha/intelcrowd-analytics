@@ -16,6 +16,7 @@ import numpy as np
 
 from .adversarial import refine
 from .context import event_risk, fruin_los, has_context, normalise_context
+from .deepnet import fuse as deep_fuse, infer as deep_infer
 from .cpri import ALERT_ACTIONS, build_alerts, compute_cpri
 from .ensemble import classify, ensemble_score, estimate_people
 from .features import extract_features, estimate_scale, load_gray
@@ -24,8 +25,9 @@ from .features import extract_features, estimate_scale, load_gray
 GRID = 3
 ZONES = GRID * GRID
 MODEL_NAME = (
-    "Ensemble v3 (RF + XGBoost + Decision Tree, HOG+LBP multi-scale) "
-    "+ Adversarial Density Critic + CPRI"
+    "CrowdVision v4: DCDN-A deep density network (dilated multi-column CNN "
+    "+ zone self-attention) fused with Ensemble v3 (RF + XGBoost + Decision "
+    "Tree, HOG+LBP multi-scale) + Adversarial Density Critic + CPRI"
 )
 
 
@@ -67,6 +69,10 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
 
     # ---- adversarial density critic (GAN-style discriminator pass) ----
     people, score, critic = refine(global_f, people, score, area / 1_000_000)
+
+    # ---- DCDN-A deep density network (convolutional + self-attention) ----
+    deep = deep_infer(gray, area / 1_000_000, people)
+    people = deep_fuse(people, deep, critic.crowdness)
 
 
     # ---- scene-context calibration (operator text data) ----
@@ -111,7 +117,9 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
     zone_avg = (sum(zone_scores) / ZONES) or 1.0
     zones = []
     for i, s in enumerate(zone_scores):
-        share = s / (zone_avg * ZONES)
+        base_share = s / (zone_avg * ZONES)
+        attn_share = deep.attention[i] if i < len(deep.attention) else 1 / ZONES
+        share = 0.7 * base_share + 0.3 * (attn_share * ZONES)
         zones.append({"id": f"Z{i+1}", "count": max(0, round(people * share)),
                       "level": classify(s)})
     total = sum(z["count"] for z in zones) or 1
@@ -172,6 +180,15 @@ def analyze_image(data: bytes, file_name: str, context: dict | None = None,
         "features": global_f.as_dict(),
         "explain": {"subModels": ens.sub_models,
                     "contributions": ens.contributions},
+        "deep": {
+            "count": deep.count,
+            "densityMean": deep.density_mean,
+            "densityPeak": deep.density_peak,
+            "attention": deep.attention,
+            "activation": deep.activation,
+            "focus": deep.focus,
+            "agreement": deep.agreement,
+        },
         "adversarial": {
             "realism": critic.realism,
             "crowdness": critic.crowdness,
